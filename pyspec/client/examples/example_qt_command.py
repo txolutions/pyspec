@@ -1,10 +1,7 @@
-from SpecClient.SpecCommand import SpecCommand
+from pyspec.client.SpecCommand import SpecCommand
 
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-
-import sys
-sys.append('..')
 
 class CommandWidget(QWidget):
 
@@ -53,7 +50,7 @@ class CommandWidget(QWidget):
         self.msg_label.setText(return_value)
          
 def update_spec_events():
-    from SpecClient import SpecEventsDispatcher
+    from pyspec.client import SpecEventsDispatcher
     SpecEventsDispatcher.dispatch()
 
 def main():

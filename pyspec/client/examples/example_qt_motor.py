@@ -1,10 +1,7 @@
-from SpecClient.SpecMotor import SpecMotorA
+from pyspec.client.SpecMotor import SpecMotorA
 
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-
-import sys
-sys.path.append('..')
 
 class MotorWidget(QWidget):
 
@@ -48,7 +45,7 @@ class MotorWidget(QWidget):
 
 # this function have to be called regularly to update spec events
 def update_spec_events():
-    from SpecClient import SpecEventsDispatcher
+    from pyspec.client import SpecEventsDispatcher
     SpecEventsDispatcher.dispatch()
 
 def main():

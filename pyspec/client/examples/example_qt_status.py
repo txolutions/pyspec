@@ -1,12 +1,9 @@
-from SpecClient.SpecConnectionsManager import SpecConnectionsManager
-from SpecClient import SpecEventsDispatcher
-from SpecClient.SpecCommand import SpecCommand
+from pyspec.client.SpecConnectionsManager import SpecConnectionsManager
+from pyspec.client import SpecEventsDispatcher
+from pyspec.client.SpecCommand import SpecCommand
 
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-
-import sys
-sys.path.append('..')
 
 class StatusWidget(QWidget):
 
@@ -81,7 +78,7 @@ class StatusWidget(QWidget):
              self.abort_button.setStyleSheet('background-color: #a0a0a0')
 
 def update_spec_events():
-    from SpecClient import SpecEventsDispatcher
+    from pyspec.client import SpecEventsDispatcher
     SpecEventsDispatcher.dispatch()
 
 def main():

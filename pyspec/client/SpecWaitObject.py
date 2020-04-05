@@ -34,7 +34,7 @@ def waitFunc(timeout):
   timeout -- waiting time in milliseconds
   """
   try:
-    from SpecClient.SpecConnectionsManager import SpecConnectionsManager
+    from pyspec.client.SpecConnectionsManager import SpecConnectionsManager
     P = getattr(SpecConnectionsManager(), "poll")
   except AttributeError:
     time.sleep(timeout/1000.0)
@@ -206,7 +206,7 @@ def waitConnection(connection, timeout = None):
     timeout -- optional timeout (defaults to None)
     """
     if isinstance(connection, str) or (is_python2() and isinstance(connection, unicode)):
-      from SpecClient.SpecConnectionsManager import SpecConnectionsManager
+      from pyspec.client.SpecConnectionsManager import SpecConnectionsManager
       connection = SpecConnectionsManager().getConnection(str(connection))
 
     w = SpecWaitObject(connection)
@@ -225,7 +225,7 @@ def waitChannelUpdate(chanName, connection, waitValue = None, timeout = None):
     """
     if isinstance(connection, str) or (is_python2() and isinstance(connection, unicode)):
       connection = str(connection)
-      from SpecClient.SpecConnectionsManager import SpecConnectionsManager
+      from pyspec.client.SpecConnectionsManager import SpecConnectionsManager
       connection = SpecConnectionsManager().getConnection(connection)
       waitConnection(connection, timeout = timeout)
 
@@ -246,7 +246,7 @@ def waitReply(connection, command, argsTuple, timeout = None):
     """
     if isinstance(connection, str) or (is_python2() and isinstance(connection, unicode)):
       connection = str(connection)
-      from SpecClient.SpecConnectionsManager import SpecConnectionsManager
+      from pyspec.client.SpecConnectionsManager import SpecConnectionsManager
       connection = SpecConnectionsManager().getConnection(connection)
       waitConnection(connection, timeout = timeout)
 

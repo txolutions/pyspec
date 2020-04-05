@@ -1,10 +1,7 @@
-from SpecClient.SpecVariable import SpecVariableA
+from pyspec.client.SpecVariable import SpecVariableA
 
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-
-import sys
-sys.append('..')
 
 class VariableWidget(QWidget):
 
@@ -35,7 +32,7 @@ class VariableWidget(QWidget):
         self.value_ledit.setText(str(value))
 
 def update_spec_events():
-    from SpecClient import SpecEventsDispatcher
+    from pyspec.client import SpecEventsDispatcher
     SpecEventsDispatcher.dispatch()
 
 def main():

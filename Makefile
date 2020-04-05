@@ -34,18 +34,14 @@
 #
 #******************************************************************************
 
-ifeq (,${PYTHON})
-    ifneq (, $(shell which python3 ))
-       override PYTHON="python3"
-    else
-       ifneq (, $(shell which python2 ))
-          override PYTHON="python2"
-       endif
-    endif
-endif
+PY2=
+PY3=
 
-ifeq (,${PYTHON})
-    override PYTHON="python"
+ifneq (, $(shell which python3 ))
+       override PY3="python3"
+endif
+ifneq (, $(shell which python2 ))
+       override PY2="python2"
 endif
 
 SHELL   = /bin/sh
@@ -101,10 +97,15 @@ install_it: owner_chk untar
 	@if [ -f pyspec_built.tar.gz ] ; then make -e install ; fi
 
 prep_datashm:
-	@cd datashm >/dev/null; ${PYTHON} setup.py --specsrc=${SPEC_SRC} build
+ifneq (,${PY2})
+	@echo "Compiling datashm module for ${PY2}"
+	@cd datashm >/dev/null; ${PY2} setup.py --specsrc=${SPEC_SRC} build
+endif
 
-prep_xraise:
-	@cd xraise >/dev/null; ${PYTHON} setup.py build
+ifneq (,${PY3})
+	@echo "Compiling datashm module for ${PY3}"
+	@cd datashm >/dev/null; ${PY3} setup.py --specsrc=${SPEC_SRC} build
+endif
 
 version:
 	@echo "Generating VERSION.py python file"
@@ -114,15 +115,22 @@ dist: prep_dist tarball
 
 prep_dist: prep_datashm 
 	-@rm -rf pyspec.tmp
-	@mkdir pyspec.tmp/spec_client 
+	@mkdir pyspec.tmp
+	@mkdir pyspec.tmp/client 
 	@cp VERSION.py pyspec.tmp/
 	 (cd pyspec >/dev/null; cp ${PY_SRC} ../pyspec.tmp/)
-	 (cd spec_client >/dev/null; cp ${CLIENT_SRC} ../pyspec.tmp/spec_client/)
-	@cd datashm >/dev/null; ${PYTHON} setup.py --specsrc=${SPEC_SRC} install --install-lib=../pyspec.tmp
-	@cd pyspec.tmp && ${PYTHON} -m compileall .
+	 (cd pyspec/client >/dev/null; cp ${CLIENT_SRC} ../../pyspec.tmp/client/)
+ifneq (,${PY2})
+	@cd datashm >/dev/null; ${PY2} setup.py --specsrc=${SPEC_SRC} install --install-lib=../pyspec.tmp
+	@cd pyspec.tmp && ${PY2} -m compileall .
+endif
+ifneq (,${PY3})
+	@cd datashm >/dev/null; ${PY3} setup.py --specsrc=${SPEC_SRC} install --install-lib=../pyspec.tmp
+	@cd pyspec.tmp && ${PY3} -m compileall .
+endif
 	@cd pyspec.tmp >/dev/null; chmod a-w * */*; \
-		chmod u+w spec_client ; \
-		chmod -f u+w __pycache__ */__pycache__ ; \
+		chmod u+w client ; \
+		chmod -f u+w __pycache__ */__pycache__  || :
 	@cd pyspec.tmp >/dev/null; ${TAR} cf - . | ${PACK} > ../pyspec_built.tar.gz
 
 owner_chk:
@@ -145,7 +153,7 @@ list:
 	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
-	  for i in ${CLIENT_SRC}; do echo spec_client/$$i; done; \
+	  for i in ${CLIENT_SRC}; do echo client/$$i; done; \
 	 ) > ,list
 
 distlist:
@@ -154,7 +162,7 @@ distlist:
 	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
 	  for i in ${MODULES}; do echo $$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
-	  for i in ${CLIENT_SRC}; do echo spec_client/$$i; done; \
+	  for i in ${CLIENT_SRC}; do echo client/$$i; done; \
 	) > ,distlist
 
 tarball:
@@ -162,12 +170,12 @@ tarball:
 	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
-	  for i in ${CLIENT_SRC}; do echo spec_client/$$i; done; \
+	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; ` \
 	  | ${PACK} > pyspec_src.tar.gz
 
 clean:
 	-@chmod -f +w pyspec.tmp/__pycache__ pyspec.tmp/*/__pycache__ && rm -rf pyspec.tmp
 	-@rm -f pyspec_src.tar.gz pyspec_built.tar.gz
 	-@rm -f *.o *.bak core datashm/*.bak 
-	-@rm -f *.pyc spec_client/*.pyc
+	-@rm -f *.pyc client/*.pyc
 	-@rm -fr datashm/build datashm/datashm.o datashm/sps.o
