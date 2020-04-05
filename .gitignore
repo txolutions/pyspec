@@ -1,0 +1,4 @@
+datashm/build
+*/__pycache__
+*pyc
+*/*pyc

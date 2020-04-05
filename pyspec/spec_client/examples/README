@@ -1,0 +1,47 @@
+
+This a set of examples to show some of the features of the
+SpecClient module and how to integrate within a python/Qt4 graphical application
+
+For other graphical toolkits simply remember to implement a method to regularly
+update events coming from spec. In the examples a QTimer is used to call
+the function "update_spec_events()". 
+
+Spec server protocol is described in detail in :
+    http://www.certif.com/spec_help/server.html
+In particular see the full list of properties that you can subscribe to in that document.
+
+All examples use the application "fourc".
+(if you want to connect to another spec application you will just need to change it in the example file)
+
+You must start "fourc" with the "-S" option
+
+  bash% fourc -S
+
+Then run the examples by simply typing
+   python <example.py>
+
+example_qt_variable.py
+   Setting a variable and receiving updates. 
+
+example_qt_motor.py  
+   Motor example with "chi" motor in "fourc"
+   Shows state and position updates
+
+example_qt_command.py  
+   Shows how to send a simple macro "wa" and how to send a macro function with
+   arguments and retrieve its return value. 
+   The example uses the following macro function definition in "spec":
+
+      def hello(name) '{
+          retstr = sprintf("Hello %s", name)
+          print retstr
+          return retstr
+      }'
+
+example_qt_status.py  
+   Shows how to check for connection status and ready/busy status.  
+   The connection to ready/busy channel illustrate also how to connect to any
+   arbitrary spec property
+  
+   A button "Quit" shows how to interrupt a running macro or command in spec.
+
