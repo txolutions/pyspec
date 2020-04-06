@@ -55,9 +55,11 @@ SPEC_SRC = ../..
 
 CHOWN   = chown
 
-DIST_SRC = specfile VERSION.py
+DIST_SRC = VERSION.py
 
 SRC = Makefile ${DIST_SRC} versionsave version_template.py
+
+TOOLS = specfile roi_selector
 
 PY_SRC = filespec.py css_logger.py utils.py
 
@@ -67,6 +69,16 @@ CLIENT_SRC = __init__.py saferef.py Spec.py SpecArray.py SpecChannel.py \
 	SpecClientError.py SpecCommand.py SpecConnection.py SpecConnectionsManager.py \
 	SpecCounter.py SpecEventsDispatcher.py SpecMessage.py SpecMotor.py \
 	SpecReply.py SpecScan.py SpecServer.py SpecVariable.py SpecWaitObject.py
+
+HDW_SRC = __init__.py eigerclient.py server.py
+
+GRAPHICS_SRC = __init__.py graphics_rc.py qwt_import.py matplotlib_import.py \
+	PySide_import.py PyQt4_import.py PyQt5_import.py PySide2_import.py \
+	QVariant.py
+
+FILE_SRC = __init__.py spec.py tiff.py
+
+PYDOC_SRC = spec_help.tpl SpecHTMLreST.py SpecMANreST.py
 
 DATASHM_SRC = datashm_py.c setup.py README
 
@@ -84,9 +96,11 @@ it: prep_dist
 
 install:
 	@echo "Installing pyspec module..."
-	@rm -f ${INSDIR}/specfile
-	@sed "/^SPECD=/s;=.*;='${SPECD}';" specfile > ${INSDIR}/specfile
-	@( chmod 555 ${INSDIR}/specfile; ${CHOWN} ${OWNER} ${INSDIR}/specfile )
+	for i in ${TOOLS}; do \
+	   @rm -f ${INSDIR}/$$i; \
+	   @sed "/^SPECD=/s;=.*;='${SPECD}';" $$i > ${INSDIR}/$$i; \
+	   @( chmod 555 ${INSDIR}/$$i; ${CHOWN} ${OWNER} ${INSDIR}/$$i; ) \
+	done; \
 	mkdir ${SPECD}/pyspec
 	@echo " Copying pyspec files ..." ; \
 	 ${UNPACK} pyspec_built.tar.gz | (cd ${SPECD}/pyspec && ${TAR} xf - )
@@ -117,9 +131,17 @@ prep_dist: prep_datashm
 	-@rm -rf pyspec.tmp
 	@mkdir pyspec.tmp
 	@mkdir pyspec.tmp/client 
+	@mkdir pyspec.tmp/hardware 
+	@mkdir pyspec.tmp/graphics 
+	@mkdir pyspec.tmp/file 
+	@mkdir pyspec.tmp/doc 
 	@cp VERSION.py pyspec.tmp/
 	 (cd pyspec >/dev/null; cp ${PY_SRC} ../pyspec.tmp/)
 	 (cd pyspec/client >/dev/null; cp ${CLIENT_SRC} ../../pyspec.tmp/client/)
+	 (cd pyspec/hardware >/dev/null; cp ${HDW_SRC} ../../pyspec.tmp/hardware/)
+	 (cd pyspec/graphics >/dev/null; cp ${GRAPHICS_SRC} ../../pyspec.tmp/graphics/)
+	 (cd pyspec/file >/dev/null; cp ${FILE_SRC} ../../pyspec.tmp/file/)
+	 (cd pyspec/doc >/dev/null; cp ${PYDOC_SRC} ../../pyspec.tmp/doc/)
 ifneq (,${PY2})
 	@cd datashm >/dev/null; ${PY2} setup.py --specsrc=${SPEC_SRC} install --install-lib=../pyspec.tmp
 	@cd pyspec.tmp && ${PY2} -m compileall .
@@ -130,6 +152,10 @@ ifneq (,${PY3})
 endif
 	@cd pyspec.tmp >/dev/null; chmod a-w * */*; \
 		chmod u+w client ; \
+		chmod u+w hardware ; \
+		chmod u+w graphics ; \
+		chmod u+w file ; \
+		chmod u+w doc ; \
 		chmod -f u+w __pycache__ */__pycache__  || :
 	@cd pyspec.tmp >/dev/null; ${TAR} cf - . | ${PACK} > ../pyspec_built.tar.gz
 
@@ -150,27 +176,41 @@ untar:
 list:
 	-@rm -f ,list; ( \
 	  for i in ${SRC}; do echo $$i; done; \
-	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
-	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
-	  for i in ${CLIENT_SRC}; do echo client/$$i; done; \
+	  for i in ${TOOLS}; do echo tools/$$i; done; \
+	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
+	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
+	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; \
+	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
+	  for i in ${GRAPHICS_SRC}; do echo pyspec/graphics/$$i; done; \
+	  for i in ${FILE_SRC}; do echo pyspec/file/$$i; done; \
+	  for i in ${PYDOC_SRC}; do echo pyspec/doc/$$i; done; \
 	 ) > ,list
 
 distlist:
 	-@rm -f ,distlist; ( \
-	  for i in ${DIST_SRC}; do echo $$i; done; \
-	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
-	  for i in ${MODULES}; do echo $$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
-	  for i in ${CLIENT_SRC}; do echo client/$$i; done; \
+	  for i in ${DIST_SRC}; do echo $$i; done; \
+	  for i in ${MODULES}; do echo $$i; done; \
+	  for i in ${TOOLS}; do echo tools/$$i; done; \
+	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
+	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; \
+	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
+	  for i in ${GRAPHICS_SRC}; do echo pyspec/graphics/$$i; done; \
+	  for i in ${FILE_SRC}; do echo pyspec/file/$$i; done; \
 	) > ,distlist
 
 tarball:
 	@rm -f pyspec_src.tar.gz; ${TAR} cf - ${DIST_SRC} `\
-	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
-	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
+	  for i in ${TOOLS}; do echo tools/$$i; done; \
+	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
+	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
 	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; ` \
+	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
+	  for i in ${GRAPHICS_SRC}; do echo pyspec/graphics/$$i; done; \
+	  for i in ${FILE_SRC}; do echo pyspec/file/$$i; done; \
+	  for i in ${PYDOC_SRC}; do echo pyspec/doc/$$i; done; \
 	  | ${PACK} > pyspec_src.tar.gz
 
 clean:
@@ -178,4 +218,8 @@ clean:
 	-@rm -f pyspec_src.tar.gz pyspec_built.tar.gz
 	-@rm -f *.o *.bak core datashm/*.bak 
 	-@rm -f *.pyc client/*.pyc
+	-@rm -f *.pyc hardware/*.pyc
+	-@rm -f *.pyc graphics/*.pyc
+	-@rm -f *.pyc file/*.pyc
+	-@rm -f *.pyc doc/*.pyc
 	-@rm -fr datashm/build datashm/datashm.o datashm/sps.o
