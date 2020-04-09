@@ -61,7 +61,7 @@ SRC = Makefile ${DIST_SRC} versionsave version_template.py
 
 TOOLS = specfile roi_selector
 
-PY_SRC = filespec.py css_logger.py utils.py
+PY_SRC = css_logger.py utils.py __init__.py
 
 MODULES = datashm.so 
 
@@ -94,14 +94,15 @@ DOCS_SRC = installation.rst spec_format.rst
 
 it: prep_dist
 
+	
+
 install:
 	@echo "Installing pyspec module..."
-	for i in ${TOOLS}; do \
-	   @rm -f ${INSDIR}/$$i; \
-	   @sed "/^SPECD=/s;=.*;='${SPECD}';" $$i > ${INSDIR}/$$i; \
-	   @( chmod 555 ${INSDIR}/$$i; ${CHOWN} ${OWNER} ${INSDIR}/$$i; ) \
-	done; \
-	mkdir ${SPECD}/pyspec
+	for i in ${TOOLS}; do rm -f ${INSDIR}/$$i; \
+		sed "/^SPECD=/s;=.*;='${SPECD}';" tools/$$i > ${INSDIR}/$$i; \
+		( chmod 555 ${INSDIR}/$$i; ${CHOWN} ${OWNER} ${INSDIR}/$$i; ) \
+	    done; \
+	mkdir -p ${SPECD}/pyspec
 	@echo " Copying pyspec files ..." ; \
 	 ${UNPACK} pyspec_built.tar.gz | (cd ${SPECD}/pyspec && ${TAR} xf - )
 	@echo " Changing ownership of pyspec files to ${OWNER} ... " ; \
@@ -206,11 +207,11 @@ tarball:
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
 	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
-	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; ` \
+	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; \
 	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
 	  for i in ${GRAPHICS_SRC}; do echo pyspec/graphics/$$i; done; \
 	  for i in ${FILE_SRC}; do echo pyspec/file/$$i; done; \
-	  for i in ${PYDOC_SRC}; do echo pyspec/doc/$$i; done; \
+	  for i in ${PYDOC_SRC}; do echo pyspec/doc/$$i; done; `\
 	  | ${PACK} > pyspec_src.tar.gz
 
 clean:

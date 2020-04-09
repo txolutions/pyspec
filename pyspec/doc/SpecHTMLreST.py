@@ -25,6 +25,7 @@ try:
    from docutils.nodes     import reprunicode
    from docutils.writers.html4css1 import HTMLTranslator
 except ImportError:
+   print("Cannot import docutils")
    sys.exit(1)
 
 if "-check" in sys.argv:
@@ -81,7 +82,7 @@ class SpecHTMLTranslator(HTMLTranslator):
                contentlink = content_link % (idanchor, nodename )
                self.contentsbody += contentlink 
          except:
-               print "cannot get content info for node ",nodename
+               print("cannot get content info for node "+nodename)
 
          if nodename.find("related")  == 0 or \
             nodename.find("other")    == 0 :
@@ -109,8 +110,8 @@ class SpecHTMLTranslator(HTMLTranslator):
       HTMLTranslator.depart_section(self,node)
 
    def depart_table(self, node):
-       self.body.append("</table>")
-       ## print "end table"
+       pass
+       # print "end table"
 
    def visit_reference(self,node):
        HTMLTranslator.visit_reference(self,node)
@@ -167,7 +168,7 @@ class SpecHTMLTranslator(HTMLTranslator):
 		#if self.sollbruchstelle.search(token):
 		#    toappend = '<span class="pre">%s</span>' % self.encode(token)
 		#else:
-		     toappend = self.encode(token)
+                toappend = self.encode(token)
             elif token in ('\n', ' '):
                 # Allow breaks at whitespace:
                 toappend = token
@@ -243,7 +244,7 @@ class SpecHTMLWriter(html4css1.Writer):
     def apply_template(self):
 
       if not self.template_str:
-         print "NO TEMPLATE"
+         print("NO TEMPLATE")
          raise BaseException("NoTemplate")
 
       subs = self.interpolation_dict()
@@ -264,10 +265,10 @@ class SpecHTMLWriter(html4css1.Writer):
             self.docsubtitle = "NO SUBTITLE"
 
 def dOneFile(filename):
-    writer        = SpecHTMLWriter(template="spec_help.tpl")
+    writer = SpecHTMLWriter(template="spec_help.tpl")
     return writer.process( filename )
 
 if __name__ == '__main__':
     import sys
     title, subtitle, converted = dOneFile( sys.argv[1] )
-    print converted
+    print(converted)

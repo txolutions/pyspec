@@ -20,6 +20,7 @@ try:
     from docutils.nodes     import reprunicode
     from docutils.writers.manpage import Writer, Translator, Table
 except ImportError:
+    print("Cannot import docutils")
     sys.exit(1)
 
 if "-check" in sys.argv:
@@ -607,7 +608,7 @@ class SpecMANWriter(Writer):
    def apply_template(self):
 
       if not self.template_str:
-         print "NO TEMPLATE"
+         print("NO TEMPLATE")
          raise "NoTemplate"
 
       subs = self.interpolation_dict()
