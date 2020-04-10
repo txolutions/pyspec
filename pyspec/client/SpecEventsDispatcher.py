@@ -15,7 +15,7 @@ except ImportError:
 import saferef 
 from pyspec.css_logger import log
 
-DEBUG=2  # debug level for this module
+DEBUG=4  # debug level for this module
 
 (UPDATEVALUE, FIREEVENT) = (1, 2)
 
@@ -76,8 +76,7 @@ class Receiver:
 
 
     def __call__(self, arguments):
-        #slot = self.weakReceiver #get the strong reference
-        slot = self.weakReceiver() #get the strong reference
+        slot = self.weakReceiver() # get the strong reference
 
         if slot is not None:
             log.log(DEBUG, "calling receiver slot %s" % slot)
@@ -92,6 +91,7 @@ class Event:
         self.args = arguments
 
         log.log(DEBUG, " creating event for signal %s - senderId is %s" % (signal, senderId))
+
         try:
             self.receivers = connections[senderId][signal]
         except:
@@ -181,9 +181,7 @@ def connect(sender, signal, slot, dispatchMode = UPDATEVALUE):
     else:
         signals[signal] = receivers
 
-    log.log(DEBUG, "connections are %s" % str(connections))
     weakReceiver = callableObjectRef(slot)
-    #weakReceiver = slot
 
     for r in receivers:
         if r.weakReceiver == weakReceiver:
@@ -228,6 +226,7 @@ def disconnect(sender, signal, slot):
     
 def showstatus():
 
+    return
     log.log(DEBUG,"status of connections is:")
 
     for i in connections.keys():
@@ -269,7 +268,6 @@ def dispatch(max_time_in_s=1):
             import traceback
             log.log(1, traceback.format_exc())
         else:
-            log.log(2, "dispatching")
             log.log(DEBUG,"got a new event to dispatch with args %s" % str(args))
             receiver(args)
             if max_time_in_s < 0:
@@ -288,16 +286,18 @@ def _removeSender(senderId):
 
 def _removeReceiver(weakReceiver):
     """Remove receiver from connections"""
+    log.log(DEBUG, "cleaning up connections, because receiver is removed %s" % str(weakReceiver))
+    return
     for senderId in list(connections.keys()):
         for signal in list(connections[senderId].keys()):
             receivers = connections[senderId][signal]
 
             for r in receivers:
-                if r.weakReceiver == weakReceiver:
+                    log.log(DEBUG, "cleaning up connections, because receiver is removed %s" % str(r))
                     receivers.remove(r)
                     break
 
-            log.log(DEBUG, "cleaning up connections, because receiver is removed")
+            log.log(DEBUG, "cleaning up connections, because receiver is removed for signal %s" % str(signal))
             _cleanupConnections(senderId, signal)
 
 

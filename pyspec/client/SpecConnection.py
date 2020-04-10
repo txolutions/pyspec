@@ -36,7 +36,7 @@ import SpecMessage
 import SpecReply
 
 
-DEBUG=2
+DEBUG=4
 
 asyncore.dispatcher.ac_in_buffer_size = 32768 #32 ko input buffer
 
@@ -321,7 +321,7 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
 
     def isSpecConnected(self):
         """Return True if the remote Spec version is connected."""
-        log.log(2, "am i connected? state is %s" % self.state)
+        log.log(DEBUG, "am i connected? state is %s" % self.state)
         return self.state == CONNECTED
 
 
@@ -503,7 +503,7 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
 
         Send all the messages from the queue.
         """
-        log.log(2, "writing to socket")
+        log.log(DEBUG, "writing to socket")
         while len(self.sendq) > 0:
             self.outputStrings.append(self.sendq.pop().sendingString())
 
@@ -512,7 +512,7 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         else:
             outputBuffer = ''.join(self.outputStrings)
 
-        log.log(2,"SpecConnection - writing data out")
+        log.log(DEBUG,"SpecConnection - writing data out")
         sent = self.send(outputBuffer)
 
         self.outputStrings = [ outputBuffer[sent:] ]
@@ -607,15 +607,15 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         chanName -- a string representing the channel name, i.e. 'var/toto'
         value -- channel value
         """
-        log.log(2,"message channel send channel=%s, value=%s" % (chanName, value))
+        log.log(DEBUG,"message channel send channel=%s, value=%s" % (chanName, value))
         if self.isSpecConnected():
             try:
                 self.__send_msg_no_reply(SpecMessage.msg_chan_send(chanName, value, version = self.serverVersion))
             except:
                 import traceback
-                log.log(2, traceback.format_exc())
+                log.log(1, traceback.format_exc())
         else:
-            log.log(2," not connected")
+            log.log(DEBUG," not connected")
             raise SpecClientNotConnectedError
 
 
@@ -693,7 +693,6 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         method to send the message. Using this method, any reply is
         lost.
         """
-        log.log(2,"sending message no reply %s" % message)
         self.sendq.insert(0, message)
 
 
