@@ -27,13 +27,16 @@ import time
 from pyspec.css_logger import log
 from pyspec.utils import is_python3
 
-from SpecClientError import SpecClientNotConnectedError
-import SpecEventsDispatcher as SpecEventsDispatcher
-import SpecChannel as SpecChannel
-import SpecMessage as SpecMessage
-import SpecReply as SpecReply
+from SpecEventsDispatcher import UPDATEVALUE, FIREEVENT
 
-DEBUG=4
+from SpecClientError import SpecClientNotConnectedError
+import SpecEventsDispatcher 
+import SpecChannel 
+import SpecMessage
+import SpecReply
+
+
+DEBUG=2
 
 asyncore.dispatcher.ac_in_buffer_size = 32768 #32 ko input buffer
 
@@ -72,6 +75,9 @@ class SpecConnection:
             raise AttributeError
 
 
+    def connect(self, signal, cb):
+        SpecEventsDispatcher.connect(self, signal, cb)
+
     def connected(self):
         """Propagate 'connection' event"""
         SpecEventsDispatcher.emit(self, 'connected', ())
@@ -90,6 +96,14 @@ class SpecConnection:
     def error(self, error):
         """Propagate 'error' event"""
         SpecEventsDispatcher.emit(self, 'error', (error, ))
+
+    def update(self,timeout=0.01):
+        self.dispatcher.makeConnection()
+        if self.dispatcher.socket is not None:
+            fds = {self.dispatcher.socket.fileno(): self.dispatcher}
+            asyncore.loop(timeout, False, fds, 1)
+        SpecEventsDispatcher.dispatch()
+
 
 
 class SpecConnectionDispatcher(asyncore.dispatcher):

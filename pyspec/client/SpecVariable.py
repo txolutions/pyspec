@@ -57,7 +57,10 @@ class SpecVariable:
           self.channelName = str(varName)
         self.specVersion = specVersion
 
-        self.connection = SpecConnectionsManager.SpecConnectionsManager().getConnection(specVersion)
+        if isinstance(specVersion, str):
+            self.connection = SpecConnectionsManager.SpecConnectionsManager().getConnection(specVersion)
+        else:
+            self.connection = specVersion
 
         w = SpecWaitObject.SpecWaitObject(self.connection)
         w.waitConnection(timeout)
@@ -151,14 +154,19 @@ class SpecVariableA:
         else:
           self.channelName = varName
 
-        self.connection = SpecConnectionsManager.SpecConnectionsManager().getConnection(specVersion)
-        SpecEventsDispatcher.connect(self.connection, 'connected', self._connected)
-        SpecEventsDispatcher.connect(self.connection, 'disconnected', self._disconnected)
+        if isinstance(specVersion,str):
+            self.connection = SpecConnectionsManager.SpecConnectionsManager().getConnection(specVersion)
+        else:
+            self.connection = specVersion
+        self.connection.connect('connected', self._connected)
+        self.connection.connect('disconnected', self._disconnected)
         self.dispatchMode = dispatchMode
 
         if self.connection.isSpecConnected():
             self._connected()
 
+    def refresh(self):
+        self.connection.update()
 
     def isSpecConnected(self):
         return self.connection is not None and self.connection.isSpecConnected()

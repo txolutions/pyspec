@@ -1,7 +1,5 @@
 from pyspec.client.SpecCommand import SpecCommand
-
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from pyspec.graphics.QVariant import *
 
 class CommandWidget(QWidget):
 
@@ -23,11 +21,14 @@ class CommandWidget(QWidget):
 
         ##  this would be the definition of a macro function 
         #   with args and return value
-        # def hello(name) '{
-        #    retstr = sprintf("Hello %s", name) 
-        #    print retstr
-        #    return retstr 
-        # }' 
+        self.hello_mac = """
+          def hello(name) '{
+             retstr = sprintf("Hello %s", name) 
+             print retstr
+             return retstr 
+          }' 
+        """
+        self._defmac_cmd = SpecCommand(self.hello_mac, self.specname)
         self._say_command = SpecCommand("hello", self.specname)
 
         self.name_box.addWidget(self.label)
@@ -42,17 +43,14 @@ class CommandWidget(QWidget):
 
     def call_cmd(self):
         ret = self._command()
-        print ret
+        print(ret)
 
     def do_say(self):
         name = str(self.name_ledit.text())
+        self._defmac_cmd() 
         return_value = self._say_command(name)
         self.msg_label.setText(return_value)
          
-def update_spec_events():
-    from pyspec.client import SpecEventsDispatcher
-    SpecEventsDispatcher.dispatch()
-
 def main():
     app = QApplication([])
     win = QMainWindow()
@@ -60,10 +58,6 @@ def main():
 
     win.setCentralWidget(var)
     win.show()
-
-    timer = QTimer()
-    timer.timeout.connect(update_spec_events)
-    timer.start(10)
 
     app.exec_()
 

@@ -1,9 +1,10 @@
-from pyspec.client.SpecConnectionsManager import SpecConnectionsManager
-from pyspec.client import SpecEventsDispatcher
-from pyspec.client.SpecCommand import SpecCommand
+from pyspec.client.SpecConnection import SpecConnection
+from pyspec.graphics.QVariant import *
+from pyspec.css_logger import log, addStdOutHandler
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+addStdOutHandler()
+log.setLevel(2)
+log.log(2, "hello")
 
 class StatusWidget(QWidget):
 
@@ -25,30 +26,32 @@ class StatusWidget(QWidget):
 
         self._update_status()
 
-        self.conn = SpecConnectionsManager().getConnection(specname)
+        self.conn = SpecConnection(specname)
 
-        SpecEventsDispatcher.connect(self.conn, 'connected', self.server_connected)
-        SpecEventsDispatcher.connect(self.conn, 'disconnected', self.server_disconnected)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.poll)
+        self.timer.start(10)
+
+        self.conn.connect('connected', self.server_connected)
+        self.conn.connect('disconnected', self.server_disconnected)
+
+    def poll(self,timeout=0.01):
+        self.conn.update()
 
     def abort_cmd(self):
         self.conn.abort()
 
     def server_connected(self):
-        print self.specname + " is now connected"
         self.is_connected = True
-        self.conn.registerChannel('status/ready', self.status_ready,
-                                         dispatchMode=SpecEventsDispatcher.UPDATEVALUE)
+        self.conn.registerChannel('status/ready', self.status_ready)
         self._update_status()
-        SpecCommand("print ",self.specname)()
 
     def server_disconnected(self):
-        print self.specname + " is now disconnected"
         self.is_connected = False
         self.conn.unregisterChannel('status/ready')
         self._update_status()
 
     def status_ready(self, value):
-        print "  - Ready is ", value
         self.ready = value
         self._update_status()
      
@@ -77,10 +80,6 @@ class StatusWidget(QWidget):
              self.abort_button.setEnabled(False)
              self.abort_button.setStyleSheet('background-color: #a0a0a0')
 
-def update_spec_events():
-    from pyspec.client import SpecEventsDispatcher
-    SpecEventsDispatcher.dispatch()
-
 def main():
     app = QApplication([])
     win = QMainWindow()
@@ -88,10 +87,6 @@ def main():
 
     win.setCentralWidget(var)
     win.show()
-
-    timer = QTimer()
-    timer.timeout.connect(update_spec_events)
-    timer.start(10)
 
     app.exec_()
 

@@ -18,10 +18,10 @@ import math
 
 from pyspec.css_logger import log
 
-import SpecConnectionsManager as SpecConnectionsManager
+from SpecConnection import SpecConnection
+from SpecCommand import  SpecCommandA
+from SpecWaitObject import SpecWaitObject
 import SpecEventsDispatcher as SpecEventsDispatcher
-import SpecWaitObject as SpecWaitObject
-import SpecCommand as SpecCommand
 
 (NOTINITIALIZED, UNUSABLE, READY, MOVESTARTED, MOVING, ONLIMIT) = (0,1,2,3,4,5)
 (NOLIMIT, LOWLIMIT, HIGHLIMIT) = (0,2,4)
@@ -74,14 +74,19 @@ class SpecMotorA(object):
         self.specVersion = specVersion
         self.chanNamePrefix = 'motor/%s/%%s' % specName
 
-        self.connection = SpecConnectionsManager.SpecConnectionsManager().getConnection(specVersion)
-        SpecEventsDispatcher.connect(self.connection, 'connected', self.__connected)
-        SpecEventsDispatcher.connect(self.connection, 'disconnected', self.__disconnected)
+        if isinstance(self.specVersion, str):
+            self.connection = SpecConnection(specVersion)
+        else:
+            self.connection = self.specVersion
 
+        self.connection.connect('connected', self.__connected)
+        self.connection.connect('disconnected', self.__disconnected)
 
         if self.connection.isSpecConnected():
             self.__connected()
 
+    def update(self):
+        self.connection.update()
 
     def __connected(self):
         """Private callback triggered by a 'connected' event from Spec."""
@@ -356,7 +361,7 @@ class SpecMotorA(object):
 
 
     def moveToLimit(self, limit):
-        cmdObject = SpecCommand.SpecCommandA("_mvc", self.connection)
+        cmdObject = SpecCommandA("_mvc", self.connection)
 
         if cmdObject.isSpecReady():
             if limit:
@@ -414,7 +419,7 @@ class SpecMotorA(object):
         return c.read()
 
 
-class SpecMotor:
+class SpecMotor(object):
     """Spec Motor"""
     def __init__(self, specName = None, specVersion = None, timeout = None):
         """Constructor
@@ -433,7 +438,6 @@ class SpecMotor:
             self.specName = None
             self.specVersion = None
 
-
     def connectToSpec(self, specName, specVersion, timeout = None):
         """Connect to a remote Spec
 
@@ -448,9 +452,12 @@ class SpecMotor:
         self.specVersion = specVersion
         self.chanNamePrefix = 'motor/%s/%%s' % specName
 
-        self.connection = SpecConnectionsManager.SpecConnectionsManager().getConnection(specVersion)
+        if isinstance(specVersion,str):
+            self.connection = SpecConnection(specVersion)
+        else:
+            self.connection = specVersion
 
-        w = SpecWaitObject.SpecWaitObject(self.connection)
+        w = SpecWaitObject(self.connection)
         w.waitConnection(timeout)
 
 
@@ -501,7 +508,7 @@ class SpecMotor:
 
     def moveToLimit(self, limit):
         if self.connection is not None:
-            cmdObject = SpecCommand.SpecCommandA("_mvc", self.connection)
+            cmdObject = SpecCommandA("_mvc", self.connection)
 
             if cmdObject.isSpecReady():
                 if limit:

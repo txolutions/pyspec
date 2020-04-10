@@ -1,7 +1,7 @@
-from pyspec.client.SpecVariable import SpecVariableA
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from pyspec.client.SpecVariable import SpecVariableA
+from pyspec.client.SpecConnection import SpecConnection
+from pyspec.graphics.QVariant import *
 
 class VariableWidget(QWidget):
 
@@ -19,21 +19,27 @@ class VariableWidget(QWidget):
 
         self.value_ledit.returnPressed.connect(self.do_setvar)
 
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update)
+        self.timer.start(10)
+
         callbacks = {'update': self.value_change}
-        self.variable = SpecVariableA(self.varname, self.specname, callbacks=callbacks)
+        self.conn = SpecConnection(self.specname)
+        self.variable = SpecVariableA(self.varname, self.conn, callbacks=callbacks)
+        #self.variable = SpecVariableA(self.varname, self.specname, callbacks=callbacks)
 
     def do_setvar(self):
         target = self.value_ledit.text()
-        print "setting %s to %s" % (self.varname, target)
+        print("setting %s to %s" % (self.varname, target))
         self.variable.setValue(str(target))
 
     def value_change(self, value):
-        print "new value is  ", value
+        print("new value is  ", value)
         self.value_ledit.setText(str(value))
 
-def update_spec_events():
-    from pyspec.client import SpecEventsDispatcher
-    SpecEventsDispatcher.dispatch()
+    def update(self):
+        #self.variable.refresh()
+        self.conn.update()
 
 def main():
     app = QApplication([])
@@ -42,10 +48,6 @@ def main():
 
     win.setCentralWidget(var)
     win.show()
-
-    timer = QTimer()
-    timer.timeout.connect(update_spec_events)
-    timer.start(10)
 
     app.exec_()
 

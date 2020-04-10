@@ -1,7 +1,7 @@
-from pyspec.client.SpecMotor import SpecMotorA
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from pyspec.client.SpecMotor import SpecMotorA
+from pyspec.client.SpecConnection import SpecConnection
+from pyspec.graphics.QVariant import *
 
 class MotorWidget(QWidget):
 
@@ -18,35 +18,40 @@ class MotorWidget(QWidget):
         layout.addWidget( self.position_ledit )
         self.position_ledit.returnPressed.connect(self.do_move)
 
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update)
+        self.timer.start(10)
+
         # need to define callbacks
         cb =  {"motorPositionChanged": self.position_change,
                "motorStateChanged": self.state_change}
 
         # create asyncronous motor
-        self.motor = SpecMotorA(self.motormne, self.specname, callbacks=cb)
+        self.conn = SpecConnection(self.specname)
+        self.motor = SpecMotorA(self.motormne, self.conn, callbacks=cb)
+
+        #self.motor = SpecMotorA(self.motormne, self.specname, callbacks=cb)
 
     def do_move(self):
         target = self.position_ledit.text()
-        print "moving %s to %s" % (self.motormne, target)
+        print( "moving %s to %s" % (self.motormne, target))
         # call move
         self.motor.move(float(target))
 
     def position_change(self, value):
-        print "position is now ", value
+        print( "position is now ", value)
         self.position_ledit.setText(str(value))
 
     def state_change(self, value):
-        print "state is now ", value
+        print( "state is now " + str(value))
         if value == 4:
             self.position_ledit.setStyleSheet("background-color: #e0e000")
         else:
             self.position_ledit.setStyleSheet("background-color: #c0ffc0")
 
-
-# this function have to be called regularly to update spec events
-def update_spec_events():
-    from pyspec.client import SpecEventsDispatcher
-    SpecEventsDispatcher.dispatch()
+    def update(self):
+        self.motor.update()
+        #self.conn.update()
 
 def main():
     app = QApplication([])
@@ -55,10 +60,6 @@ def main():
 
     win.setCentralWidget(motor)
     win.show()
-
-    timer = QTimer()
-    timer.timeout.connect(update_spec_events)
-    timer.start(10)
 
     app.exec_()
 
