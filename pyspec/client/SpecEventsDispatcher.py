@@ -329,10 +329,6 @@ def _cleanupConnections(senderId, signal):
     """Delete any empty signals for sender. Delete sender if empty."""
 
     receivers = connections[senderId][signal]
-    try:
-        log.log(DEBUG, "cleaning up connections for %s" % [senderId]().name)
-    except:
-        pass
 
     log.log(DEBUG, "   number of receivers is %d" % len(receivers))
 
