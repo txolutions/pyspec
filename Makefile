@@ -4,7 +4,7 @@
 #
 #  "pyspec" Release %R%
 #
-#  Copyright (c) 2013,2014,2015,2016,2017,2018,2019,2020
+#  Copyright (c) 2020
 #  by Certified Scientific Software.
 #  All rights reserved.
 #
@@ -40,6 +40,7 @@ PY3=
 ifneq (, $(shell which python3 ))
        override PY3="python3"
 endif
+
 ifneq (, $(shell which python2 ))
        override PY2="python2"
 endif
@@ -91,14 +92,11 @@ DOCS_SRC = installation.rst spec_format.rst
 %: s.%
 %: SCCS/s.%
 
-
 it: prep_dist
 
-	
-
 install:
-	@echo "Installing pyspec module..."
-	for i in ${TOOLS}; do rm -f ${INSDIR}/$$i; \
+	@echo "Installing pyspec modules ..."
+	@for i in ${TOOLS}; do rm -f ${INSDIR}/$$i; \
 		sed "/^SPECD=/s;=.*;='${SPECD}';" tools/$$i > ${INSDIR}/$$i; \
 		( chmod 555 ${INSDIR}/$$i; ${CHOWN} ${OWNER} ${INSDIR}/$$i; ) \
 	    done; \
@@ -116,7 +114,6 @@ ifneq (,${PY2})
 	@echo "Compiling datashm module for ${PY2}"
 	@cd datashm >/dev/null; ${PY2} setup.py --specsrc=${SPEC_SRC} build
 endif
-
 ifneq (,${PY3})
 	@echo "Compiling datashm module for ${PY3}"
 	@cd datashm >/dev/null; ${PY3} setup.py --specsrc=${SPEC_SRC} build
@@ -215,12 +212,13 @@ tarball:
 	  | ${PACK} > pyspec_src.tar.gz
 
 clean:
-	-@chmod -f +w pyspec.tmp/__pycache__ pyspec.tmp/*/__pycache__ && rm -rf pyspec.tmp
+	-@rm -rf pyspec.tmp
 	-@rm -f pyspec_src.tar.gz pyspec_built.tar.gz
 	-@rm -f *.o *.bak core datashm/*.bak 
-	-@rm -f *.pyc client/*.pyc
-	-@rm -f *.pyc hardware/*.pyc
-	-@rm -f *.pyc graphics/*.pyc
-	-@rm -f *.pyc file/*.pyc
-	-@rm -f *.pyc doc/*.pyc
+	-@rm -f pyspec/*.pyc
+	-@rm -f pyspec/client/*.pyc
+	-@rm -f pyspec/hardware/*.pyc
+	-@rm -f graphics/*.pyc
+	-@rm -f pyspec/file/*.pyc
+	-@rm -f pyspec/doc/*.pyc
 	-@rm -fr datashm/build datashm/datashm.o datashm/sps.o
