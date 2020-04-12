@@ -415,23 +415,21 @@ class RoiSelector(QWidget):
 
     def loadDataNumpy(self):
         print("Load data numpy")
-        filename = QFileDialog.getOpenFileName(self, "Open Image", self.image_dir, "*");
-        filename = str(filename)
+        filename = self.get_filename()
         im = Image.open(filename)
         self.data = np.array(im)
         print("image loaded with shape %s- sum = %s" % (self.data.shape, self.data.sum()))
 
     def loadDataTiff(self):
-        filename = QFileDialog.getOpenFileName(self, "Open Image", self.image_dir, "*");
-        filename = str(filename)
+        filename = self.get_filename()
         im = tiff.TiffFile(filename)
         i0 = im.series[0]
         self.data = i0.asarray()
         print("image loaded with shape %s- sum = %s" % (self.data.shape, self.data.sum()))
 
     def loadDataArray(self):
-        filename = QFileDialog.getOpenFileName(self, "Open Image", self.image_dir, "*");
         import array
+        filename = self.get_filename()
         fd = open(filename,"rb")
         fd.seek(self.tiffoffset)  # skip the header
         arr = array.array("I")
@@ -446,7 +444,7 @@ class RoiSelector(QWidget):
         sys.path.append("/home/specadm/spec_dist/dectris/albula/3.2/python")
         import dectris.albula
 
-        filename = QFileDialog.getOpenFileName(self, "Open Image", "/home/rey", "*");
+        filename = self.get_filename()
 
         if dectris.albula.versionMajor() == 3:
             series = dectris.albula.DImageSeries()
@@ -460,6 +458,17 @@ class RoiSelector(QWidget):
             img0 = container[first]
 
         self.data = img0.data()
+
+    def get_filename(self):
+        answ = QFileDialog.getOpenFileName(self, "Open Image", self.image_dir, "*");
+        print("answer is %s" % str(answ))
+        if isinstance(answ, str):
+            filename = str(answ)
+        else:
+            filename = answ[0]
+        print("filename is %s" % str(filename))
+        return filename
+
 
 def printUsage():
     print("Usage: %s spec_app" % sys.argv[0])
