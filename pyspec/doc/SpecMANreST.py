@@ -19,6 +19,7 @@ try:
     from docutils           import nodes
     from docutils.nodes     import reprunicode
     from docutils.writers.manpage import Writer, Translator, Table
+    from docutils.core import publish_string
 except ImportError:
     print("Cannot import docutils")
     sys.exit(1)
@@ -631,17 +632,35 @@ class SpecMANWriter(Writer):
       self.output = self.visitor.astext()
 
 
+def process(filename, outfile=None):
+    buf = open(filename).read()
+    pub_str = publish_string(buf, writer=SpecMANWriter(), settings_overrides={'output_encoding': 'unicode'})
+
+    if not outfile:
+       fd = sys.stdout
+    else:
+       fd = open(outfile,"w")
+
+    fd.write(pub_str)
+
 if __name__ == '__main__':
 
     import sys
 
-    from docutils.core import publish_string
 
-    buf = open(sys.argv[1]).read()
-
-    if len(sys.argv) > 2 and sys.argv[2] == "-d":
+    if "-d" in sys.argv:
+        idx = sys.argv.index("-d")
+        sys.argv.pop(idx)
         DEBUG = 1
 
-    pub_str = publish_string(buf, writer=SpecMANWriter(), settings_overrides={'output_encoding': 'unicode'})
+    if len(sys.argv) < 2:
+        print("Usage: %s filename [outfile]", sys.argv[0])
+        sys.exit(0)
 
-    print(pub_str)
+    filename = sys.argv[1]
+    if len(sys.argv) >= 3:
+        outfile = sys.argv[2]
+    else:
+        outfile = None
+
+    process(filename, outfile)

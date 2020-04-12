@@ -81,7 +81,7 @@ GRAPHICS_SRC = __init__.py graphics_rc.py qwt_import.py matplotlib_import.py \
 
 FILE_SRC = __init__.py spec.py tiff.py
 
-PYDOC_SRC = spec_help.tpl SpecHTMLreST.py SpecMANreST.py
+PYDOC_SRC = __init__.py spec_help.tpl SpecHTMLreST.py SpecMANreST.py
 
 DATASHM_SRC = datashm_py.c setup.py README
 

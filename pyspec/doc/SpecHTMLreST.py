@@ -237,7 +237,6 @@ class SpecHTMLWriter(html4css1.Writer):
            self.setTemplate(template)
 
        self.extraclass = extraclass
-       #print "Processing ", filename, " ", outfilename, " ", self
        convbuf = publish_file( source_path=filename, destination_path=outfilename, writer_name='html',  writer=self) 
        return(self.doctitle, self.docsubtitle, convbuf)
 
@@ -264,11 +263,46 @@ class SpecHTMLWriter(html4css1.Writer):
         except:
             self.docsubtitle = "NO SUBTITLE"
 
-def dOneFile(filename):
-    writer = SpecHTMLWriter(template="spec_help.tpl")
+def dOneFile(filename, template=None):
+
+    from os.path import dirname, abspath
+
+    if template is None:
+        template = os.path.join(dirname(abspath(__file__)), "spec_help.tpl")
+
+    writer = SpecHTMLWriter(template=template)
     return writer.process( filename )
 
+def process(filename, outfile=None, template=None):
+    buf = open(filename).read()
+    title, subtitle, converted = dOneFile(filename , template)
+
+    if not outfile:
+       fd = sys.stdout
+    else:
+       fd = open(outfile,"w")
+
+    fd.write(converted)
+
 if __name__ == '__main__':
+
     import sys
-    title, subtitle, converted = dOneFile( sys.argv[1] )
-    print(converted)
+
+    if "-d" in sys.argv:
+        idx = sys.argv.index("-d")
+        sys.argv.pop(idx)
+        DEBUG = 1
+
+    if len(sys.argv) < 2:
+        print("Usage: %s filename [outfile]", sys.argv[0])
+        sys.exit(0)
+
+    filename = sys.argv[1]
+
+    if len(sys.argv) >= 3:
+        outfile = sys.argv[2]
+    else:
+        outfile = None
+
+    process(filename, outfile)
+
