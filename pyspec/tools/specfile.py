@@ -67,14 +67,14 @@ sys.path.append( specd )
 try:
    from pyspec.file.spec import FileSpec
 except ImportError:
-   print "Cannot find filespec module. Try setting SPECD variable"
+   print("Cannot find filespec module. Try setting SPECD variable")
    sys.exit(0)
 
 outformats = ['csv', 'tabs', 'spec']
 
 def printUsage(msg=None, longmode=False):
     if msg:
-       print msg
+       print(msg)
 
     if not longmode:
        print("""Usage: %(progname)s [options] filename [scanlist] 
@@ -221,7 +221,7 @@ def main():
              printUsage(longmode=True)
              sys.exit(0)
         elif o == '-V':
-            print version
+            print(version)
             sys.exit(0)
         elif o == "-f":
             outformat = a
@@ -280,7 +280,7 @@ def main():
     if list_flag:
         scanlist = [ scan.getNumber() for scan in fs ]
         strlist = formatScanList( scanlist, condensed=condensed )
-        print strlist
+        print(strlist)
         sys.exit(0)
 
     # prepare the scan list to extract
@@ -289,7 +289,7 @@ def main():
        #try: 
           scanlist = parseScanArgs( scanargs ) 
        #except:
-          #print "Wrong scan selection"
+          #print("Wrong scan selection")
           #sys.exit(1)
        
     scans = []
