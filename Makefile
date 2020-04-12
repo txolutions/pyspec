@@ -62,7 +62,9 @@ SRC = Makefile ${DIST_SRC} versionsave version_template.py
 
 TOOLS = specfile roi_selector
 
-PY_SRC = css_logger.py utils.py __init__.py
+TOOLS_PY = specfile.py roi_selector.py
+
+PY_SRC = css_logger.py utils.py __init__.py 
 
 MODULES = datashm.so 
 
@@ -131,6 +133,7 @@ prep_dist: prep_datashm
 	@mkdir pyspec.tmp/client 
 	@mkdir pyspec.tmp/hardware 
 	@mkdir pyspec.tmp/graphics 
+	@mkdir pyspec.tmp/tools 
 	@mkdir pyspec.tmp/file 
 	@mkdir pyspec.tmp/doc 
 	@cp VERSION.py pyspec.tmp/
@@ -138,6 +141,7 @@ prep_dist: prep_datashm
 	 (cd pyspec/client >/dev/null; cp ${CLIENT_SRC} ../../pyspec.tmp/client/)
 	 (cd pyspec/hardware >/dev/null; cp ${HDW_SRC} ../../pyspec.tmp/hardware/)
 	 (cd pyspec/graphics >/dev/null; cp ${GRAPHICS_SRC} ../../pyspec.tmp/graphics/)
+	 (cd pyspec/tools >/dev/null; cp ${TOOLS_PY} ../../pyspec.tmp/tools/)
 	 (cd pyspec/file >/dev/null; cp ${FILE_SRC} ../../pyspec.tmp/file/)
 	 (cd pyspec/doc >/dev/null; cp ${PYDOC_SRC} ../../pyspec.tmp/doc/)
 ifneq (,${PY2})
@@ -175,9 +179,10 @@ list:
 	-@rm -f ,list; ( \
 	  for i in ${SRC}; do echo $$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
-	  for i in ${TOOLS}; do echo tools/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
 	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
+	  for i in ${TOOLS}; do echo tools/$$i; done; \
+	  for i in ${TOOLS_PY}; do echo pyspec/tools/$$i; done; \
 	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; \
 	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
 	  for i in ${GRAPHICS_SRC}; do echo pyspec/graphics/$$i; done; \
@@ -191,6 +196,7 @@ distlist:
 	  for i in ${DIST_SRC}; do echo $$i; done; \
 	  for i in ${MODULES}; do echo $$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
+	  for i in ${TOOLS_PY}; do echo pyspec/tools/$$i; done; \
 	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
 	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; \
 	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
@@ -200,6 +206,7 @@ distlist:
 
 tarball:
 	@rm -f pyspec_src.tar.gz; ${TAR} cf - ${DIST_SRC} `\
+	  for i in ${SRC}; do echo $$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
@@ -207,6 +214,7 @@ tarball:
 	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; \
 	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
 	  for i in ${GRAPHICS_SRC}; do echo pyspec/graphics/$$i; done; \
+	  for i in ${TOOLS_PY}; do echo pyspec/tools/$$i; done; \
 	  for i in ${FILE_SRC}; do echo pyspec/file/$$i; done; \
 	  for i in ${PYDOC_SRC}; do echo pyspec/doc/$$i; done; `\
 	  | ${PACK} > pyspec_src.tar.gz
