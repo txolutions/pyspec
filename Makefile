@@ -37,11 +37,11 @@
 PY2=
 PY3=
 
-ifneq (, $(shell which python3 ))
+ifneq (, $(shell which python3 2>/dev/null))
        override PY3="python3"
 endif
 
-ifneq (, $(shell which python2 ))
+ifneq (, $(shell which python2 2>/dev/null))
        override PY2="python2"
 endif
 
@@ -64,7 +64,7 @@ TOOLS = specfile roi_selector
 
 TOOLS_PY = specfile.py roi_selector.py
 
-PY_SRC = css_logger.py utils.py __init__.py 
+PY_SRC = css_logger.py utils.py __init__.py
 
 MODULES = datashm.so 
 
@@ -105,8 +105,9 @@ install:
 	mkdir -p ${SPECD}/pyspec
 	@echo " Copying pyspec files ..." ; \
 	 ${UNPACK} pyspec_built.tar.gz | (cd ${SPECD}/pyspec && ${TAR} xf - )
-	@echo " Changing ownership of pyspec files to ${OWNER} ... " ; \
-	 cd ${SPECD}/pyspec ; ${CHOWN} -R ${OWNER} . 
+	@if [ "${CHOWN}" = "chown" ] ; then \
+	 echo " Changing ownership of pyspec files to ${OWNER} ... " ; \
+	 cd ${SPECD}/pyspec ; ${CHOWN} -R ${OWNER} . ; fi
 
 install_it: owner_chk untar
 	@if [ -f pyspec_built.tar.gz ] ; then make -e install ; fi
@@ -156,6 +157,7 @@ endif
 		chmod u+w client ; \
 		chmod u+w hardware ; \
 		chmod u+w graphics ; \
+		chmod u+w tools ; \
 		chmod u+w file ; \
 		chmod u+w doc ; \
 		chmod -f u+w __pycache__ */__pycache__  || :
@@ -223,10 +225,4 @@ clean:
 	-@rm -rf pyspec.tmp
 	-@rm -f pyspec_src.tar.gz pyspec_built.tar.gz
 	-@rm -f *.o *.bak core datashm/*.bak 
-	-@rm -f pyspec/*.pyc
-	-@rm -f pyspec/client/*.pyc
-	-@rm -f pyspec/hardware/*.pyc
-	-@rm -f graphics/*.pyc
-	-@rm -f pyspec/file/*.pyc
-	-@rm -f pyspec/doc/*.pyc
 	-@rm -fr datashm/build datashm/datashm.o datashm/sps.o
