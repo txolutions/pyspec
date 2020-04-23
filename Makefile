@@ -73,6 +73,9 @@ CLIENT_SRC = __init__.py saferef.py Spec.py SpecArray.py SpecChannel.py \
 	SpecCounter.py SpecEventsDispatcher.py SpecMessage.py SpecMotor.py \
 	SpecReply.py SpecScan.py SpecServer.py SpecVariable.py SpecWaitObject.py
 
+EXAMPLES = README example_qt_command.py	example_qt_motor.py \
+	example_qt_status.py example_qt_variable.py
+
 HDW_SRC = __init__.py eigerclient.py server.py
 
 GRAPHICS_SRC = __init__.py graphics_rc.py qwt_import.py matplotlib_import.py \
@@ -132,19 +135,21 @@ prep_dist: prep_datashm
 	-@rm -rf pyspec.tmp
 	@mkdir pyspec.tmp
 	@mkdir pyspec.tmp/client 
+	@mkdir pyspec.tmp/client/examples
 	@mkdir pyspec.tmp/hardware 
 	@mkdir pyspec.tmp/graphics 
 	@mkdir pyspec.tmp/tools 
 	@mkdir pyspec.tmp/file 
 	@mkdir pyspec.tmp/doc 
 	@cp VERSION.py pyspec.tmp/
-	 (cd pyspec >/dev/null; cp ${PY_SRC} ../pyspec.tmp/)
-	 (cd pyspec/client >/dev/null; cp ${CLIENT_SRC} ../../pyspec.tmp/client/)
-	 (cd pyspec/hardware >/dev/null; cp ${HDW_SRC} ../../pyspec.tmp/hardware/)
-	 (cd pyspec/graphics >/dev/null; cp ${GRAPHICS_SRC} ../../pyspec.tmp/graphics/)
-	 (cd pyspec/tools >/dev/null; cp ${TOOLS_PY} ../../pyspec.tmp/tools/)
-	 (cd pyspec/file >/dev/null; cp ${FILE_SRC} ../../pyspec.tmp/file/)
-	 (cd pyspec/doc >/dev/null; cp ${PYDOC_SRC} ../../pyspec.tmp/doc/)
+	 (cd python >/dev/null; cp ${PY_SRC} ../pyspec.tmp/)
+	 (cd python/client >/dev/null; cp ${CLIENT_SRC} ../../pyspec.tmp/client/)
+	 (cd python/client/examples >/dev/null; cp ${EXAMPLES} ../../pyspec.tmp/client/examples)
+	 (cd python/hardware >/dev/null; cp ${HDW_SRC} ../../pyspec.tmp/hardware/)
+	 (cd python/graphics >/dev/null; cp ${GRAPHICS_SRC} ../../pyspec.tmp/graphics/)
+	 (cd python/tools >/dev/null; cp ${TOOLS_PY} ../../pyspec.tmp/tools/)
+	 (cd python/file >/dev/null; cp ${FILE_SRC} ../../pyspec.tmp/file/)
+	 (cd python/doc >/dev/null; cp ${PYDOC_SRC} ../../pyspec.tmp/doc/)
 ifneq (,${PY2})
 	@cd datashm >/dev/null; ${PY2} setup.py --specsrc=${SPEC_SRC} install --install-lib=../pyspec.tmp
 	@cd pyspec.tmp && ${PY2} -m compileall .
@@ -182,14 +187,15 @@ list:
 	  for i in ${SRC}; do echo $$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
-	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
-	  for i in ${TOOLS_PY}; do echo pyspec/tools/$$i; done; \
-	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; \
-	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
-	  for i in ${GRAPHICS_SRC}; do echo pyspec/graphics/$$i; done; \
-	  for i in ${FILE_SRC}; do echo pyspec/file/$$i; done; \
-	  for i in ${PYDOC_SRC}; do echo pyspec/doc/$$i; done; \
+	  for i in ${PY_SRC}; do echo python/$$i; done; \
+	  for i in ${TOOLS_PY}; do echo python/tools/$$i; done; \
+	  for i in ${CLIENT_SRC}; do echo python/client/$$i; done; \
+	  for i in ${EXAMPLES}; do echo python/client/examples/$$i; done; \
+	  for i in ${HDW_SRC}; do echo python/hardware/$$i; done; \
+	  for i in ${GRAPHICS_SRC}; do echo python/graphics/$$i; done; \
+	  for i in ${FILE_SRC}; do echo python/file/$$i; done; \
+	  for i in ${PYDOC_SRC}; do echo python/doc/$$i; done; \
 	 ) > ,list
 
 distlist:
@@ -198,12 +204,13 @@ distlist:
 	  for i in ${DIST_SRC}; do echo $$i; done; \
 	  for i in ${MODULES}; do echo $$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
-	  for i in ${TOOLS_PY}; do echo pyspec/tools/$$i; done; \
-	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
-	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; \
-	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
-	  for i in ${GRAPHICS_SRC}; do echo pyspec/graphics/$$i; done; \
-	  for i in ${FILE_SRC}; do echo pyspec/file/$$i; done; \
+	  for i in ${TOOLS_PY}; do echo python/tools/$$i; done; \
+	  for i in ${PY_SRC}; do echo python/$$i; done; \
+	  for i in ${CLIENT_SRC}; do echo python/client/$$i; done; \
+	  for i in ${EXAMPLES}; do echo python/client/examples/$$i; done; \
+	  for i in ${HDW_SRC}; do echo python/hardware/$$i; done; \
+	  for i in ${GRAPHICS_SRC}; do echo python/graphics/$$i; done; \
+	  for i in ${FILE_SRC}; do echo python/file/$$i; done; \
 	) > ,distlist
 
 tarball:
@@ -212,13 +219,14 @@ tarball:
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
-	  for i in ${PY_SRC}; do echo pyspec/$$i; done; \
-	  for i in ${CLIENT_SRC}; do echo pyspec/client/$$i; done; \
-	  for i in ${HDW_SRC}; do echo pyspec/hardware/$$i; done; \
-	  for i in ${GRAPHICS_SRC}; do echo pyspec/graphics/$$i; done; \
-	  for i in ${TOOLS_PY}; do echo pyspec/tools/$$i; done; \
-	  for i in ${FILE_SRC}; do echo pyspec/file/$$i; done; \
-	  for i in ${PYDOC_SRC}; do echo pyspec/doc/$$i; done; `\
+	  for i in ${PY_SRC}; do echo python/$$i; done; \
+	  for i in ${CLIENT_SRC}; do echo python/client/$$i; done; \
+	  for i in ${EXAMPLES}; do echo python/client/examples/$$i; done; \
+	  for i in ${HDW_SRC}; do echo python/hardware/$$i; done; \
+	  for i in ${GRAPHICS_SRC}; do echo python/graphics/$$i; done; \
+	  for i in ${TOOLS_PY}; do echo python/tools/$$i; done; \
+	  for i in ${FILE_SRC}; do echo python/file/$$i; done; \
+	  for i in ${PYDOC_SRC}; do echo python/doc/$$i; done; `\
 	  | ${PACK} > pyspec_src.tar.gz
 
 clean:
