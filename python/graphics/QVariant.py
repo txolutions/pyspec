@@ -292,9 +292,9 @@ else:
     if (not check_compatible()):
         print_selection()
         print( """
-splot needs graphical libraries installed in your system.
+{progname} needs graphical libraries installed in your system.
 
-splot can run in the following environment:
+{progname} can run in the following environment:
    - matplotlib version 1.4.1 or later together with PyQt5
    - matplotlib version 1.1 or later together with PySide 
    - matplotlib version 0.99 or later together with PyQt4 
@@ -303,5 +303,5 @@ splot can run in the following environment:
 No compatible installation was found.
 
 Make sure compatible graphical libraries are installed in your system.
-""")
+""").format( progname=os.path.basename(sys.argv[0]) )
         sys.exit(1)
