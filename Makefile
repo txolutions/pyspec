@@ -36,25 +36,32 @@
 
 PY2=
 PY3=
-
 ifneq (, $(shell which python3 2>/dev/null))
        override PY3="python3"
 endif
-
 ifneq (, $(shell which python2 2>/dev/null))
        override PY2="python2"
 endif
 
+OWNER := $(shell grep -s owner= ../../install_data | sed 's/owner=//')
+SPECD := $(shell grep -s aux= ../../install_data | sed 's/aux=//')
+
+ifeq (${strip ${SPECD}}, )
+SPECD = /usr/local/lib/spec.d
+endif
+ifeq (${strip ${OWNER}}, )
+OWNER = specadm
+endif
+ifeq (${strip ${CHOWN}}, )
+CHOWN = chown
+endif
+
 SHELL   = /bin/sh
-OWNER   = specadm
-SPECD   = /usr/local/lib/spec.d
 INSDIR  = /usr/local/bin
 TAR     = tar
 PACK    = gzip -c
 UNPACK  = gunzip -c
 SPEC_SRC = ../..
-
-CHOWN   = chown
 
 DIST_SRC = VERSION.py
 
@@ -144,7 +151,7 @@ prep_dist: prep_datashm
 	@cp VERSION.py pyspec.tmp/
 	 (cd python >/dev/null; cp ${PY_SRC} ../pyspec.tmp/)
 	 (cd python/client >/dev/null; cp ${CLIENT_SRC} ../../pyspec.tmp/client/)
-	 (cd python/client/examples >/dev/null; cp ${EXAMPLES} ../../pyspec.tmp/client/examples)
+	 (cd python/client/examples >/dev/null; cp ${EXAMPLES} ../../../pyspec.tmp/client/examples)
 	 (cd python/hardware >/dev/null; cp ${HDW_SRC} ../../pyspec.tmp/hardware/)
 	 (cd python/graphics >/dev/null; cp ${GRAPHICS_SRC} ../../pyspec.tmp/graphics/)
 	 (cd python/tools >/dev/null; cp ${TOOLS_PY} ../../pyspec.tmp/tools/)
@@ -160,6 +167,7 @@ ifneq (,${PY3})
 endif
 	@cd pyspec.tmp >/dev/null; chmod a-w * */*; \
 		chmod u+w client ; \
+		chmod u+w client/examples ; \
 		chmod u+w hardware ; \
 		chmod u+w graphics ; \
 		chmod u+w tools ; \
