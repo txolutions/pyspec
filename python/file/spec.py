@@ -66,6 +66,9 @@ import time
 
 from css_logger import log
 
+class FileSpecFormatUnknown(BaseException):
+    pass
+
 class FileSpec(list):
     """
     FileSpec class documentation
@@ -89,6 +92,9 @@ class FileSpec(list):
         self.scans = {}
 
         self._indexscans()
+
+        if len(self.scans) == 0:
+            raise FileSpecFormatUnknown("No scans found in file %s" % self.filename)
 
     def absolutePath(self):
         return os.path.abspath(self.filename)
