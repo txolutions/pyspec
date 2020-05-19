@@ -1,5 +1,5 @@
 #  %W%  %G% CSS
-#  "splot" Release %R%
+#  "pyspec" Release %R%
 #
 # extracted from Louie, http://pylouie.org/
 # updated for Python 3

@@ -1,5 +1,5 @@
 #  %W%  %G% CSS
-#  "splot" Release %R%
+#  "pyspec" Release %R%
 #
 #$id: SpecConnection.py,v 1.11 2005/12/09 10:32:24 guijarro Exp $
 """SpecConnection module

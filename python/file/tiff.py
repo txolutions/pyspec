@@ -1,7 +1,11 @@
 #!/usr/bin/env python
+#
 # -*- coding: utf-8 -*-
 # tifffile.py
-
+#
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
+#
 # Copyright (c) 2008-2016, Christoph Gohlke
 # Copyright (c) 2008-2016, The Regents of the University of California
 # Produced at the Laboratory for Fluorescence Dynamics
