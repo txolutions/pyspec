@@ -1,36 +1,73 @@
+..
+..  %W%  %G% CSS
+..  "pyspec" Release %R%
+..
 
-This a set of examples to show some of the features of the
-SpecClient module and how to integrate within a python/Qt4 graphical application
+These examples show some of the features of the SpecClient module
+and how to integrate them module within a Python/Qt4 graphical
+application.
 
-For other graphical toolkits simply remember to implement a method to regularly
-update events coming from spec. In the examples a QTimer is used to call
-the function "update_spec_events()". 
+To use a different graphical toolkit, implement a method to regularly
+update events coming from spec. In the examples, a QTimer is used
+to call the function "update_spec_events()".
 
-Spec server protocol is described in detail in :
+Spec server protocol is described in detail in:
+
     http://www.certif.com/spec_help/server.html
-In particular see the full list of properties that you can subscribe to in that document.
 
-All examples use the application "fourc".
-(if you want to connect to another spec application you will just need to change it in the example file)
+In particular, the document includes the list of properties that
+are available.  Subscribe to a property to receive events when the
+property value changes.
 
-You must start "fourc" with the "-S" option
+The examples use the application "fourc".  To connect to another
+instance, change the name in the example file.
+
+In order to connect with the client, spec must be started in server
+mode, using the "-S" flag, as in:
 
   bash% fourc -S
 
-Then run the examples by simply typing
-   python <example.py>
+In order for the example scripts to find the spec client Python module,
+be sure the spec auxiliary file directory is in the Python path.
+For example,
+   
+    export PYTHONPATH=$PYTHONPATH:/usr/local/lib/spec.d
+
+Alternatively, the Python scripts could include these lines:
+
+    import sys
+    sys.path.append("/usr/local/lib/spec.d")
+
+Then
+
+    import pyspec
+
+or
+
+    from pyspec.client import SpecCommand
+
+Finally to run an example script, type:
+
+   python example.py
+
+where "example.py" is one of the following:
 
 example_qt_variable.py
-   Setting a variable and receiving updates. 
+
+   Sets a variable and receives updates.  The example uses a variable
+   named "MYVAR".  Create a global variable in the spec server
+   session with that name before running the python script.
 
 example_qt_motor.py  
-   Motor example with "chi" motor in "fourc"
-   Shows state and position updates
+
+   Shows state and position updates for a motor with the mnemonic
+   "chi".
 
 example_qt_command.py  
-   Shows how to send a simple macro "wa" and how to send a macro function with
-   arguments and retrieve its return value. 
-   The example uses the following macro function definition in "spec":
+
+   Sends the command "wa" and creates and runs a new macro function
+   with arguments and retrieves the return value.  The example uses
+   the following macro function:
 
       def hello(name) '{
           retstr = sprintf("Hello %s", name)
@@ -39,9 +76,11 @@ example_qt_command.py
       }'
 
 example_qt_status.py  
-   Shows how to check for connection status and ready/busy status.  
-   The connection to ready/busy channel illustrate also how to connect to any
+
+   Check for connection status and ready/busy status.  The connection
+   to ready/busy channel illustrate also how to connect to any
    arbitrary spec property
-  
-   A button "Quit" shows how to interrupt a running macro or command in spec.
+
+   An "abort" button shows how to interrupt a running macro or command
+   in spec.
 

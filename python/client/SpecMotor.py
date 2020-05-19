@@ -1,5 +1,5 @@
 #  %W%  %G% CSS
-#  "splot" Release %R%
+#  "pyspec" Release %R%
 #
 #$Id: SpecMotor.py,v 1.6 2005/02/08 13:17:21 guijarro Exp $
 """SpecMotor module

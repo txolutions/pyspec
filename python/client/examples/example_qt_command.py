@@ -1,3 +1,8 @@
+#
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
+#
+
 from pyspec.client.SpecCommand import SpecCommand
 from pyspec.graphics.QVariant import *
 

@@ -1,5 +1,5 @@
 #  %W%  %G% CSS
-#  "splot" Release %R%
+#  "pyspec" Release %R%
 #
 #$Id: SpecChannel.py,v 1.6 2006/12/14 10:03:13 guijarro Exp $
 """SpecChannel module

@@ -1,5 +1,5 @@
 #  %W%  %G% CSS
-#  "splot" Release %R%
+#  "pyspec" Release %R%
 #
 
 from pyspec.css_logger import log

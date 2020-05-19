@@ -1,3 +1,8 @@
+#
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
+#
+
 from pyspec.client.SpecConnection import SpecConnection
 from pyspec.graphics.QVariant import *
 from pyspec.css_logger import log, addStdOutHandler

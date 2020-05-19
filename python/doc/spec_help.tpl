@@ -10,4 +10,5 @@
   </div -->
 %(body_pre_docinfo)s
 %(body)s
+<!-- %W%  %G% CSS -->
 

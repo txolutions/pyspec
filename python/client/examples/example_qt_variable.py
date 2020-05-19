@@ -1,3 +1,7 @@
+#
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
+#
 
 from pyspec.client.SpecVariable import SpecVariableA
 from pyspec.client.SpecConnection import SpecConnection

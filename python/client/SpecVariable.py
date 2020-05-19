@@ -1,5 +1,5 @@
 #  %W%  %G% CSS
-#  "splot" Release %R%
+#  "pyspec" Release %R%
 #
 #$Id: SpecVariable.py,v 1.4 2005/03/17 12:43:46 guijarro Exp $
 

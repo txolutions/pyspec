@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+#
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
+#
 
 import os
 import sys

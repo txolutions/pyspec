@@ -1,5 +1,5 @@
 #  %W%  %G% CSS
-#  "splot" Release %R%
+#  "pyspec" Release %R%
 #
 #$Id: SpecReply.py,v 1.1 2004/08/23 11:16:09 guijarro Exp $
 """SpecReply module

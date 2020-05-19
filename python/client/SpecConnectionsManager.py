@@ -1,5 +1,5 @@
 #  %W%  %G% CSS
-#  "splot" Release %R%
+#  "pyspec" Release %R%
 #
 #$Id: SpecConnectionsManager.py,v 1.13 2005/09/27 13:54:58 guijarro Exp $
 """Module for managing connections to Spec

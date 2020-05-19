@@ -1,3 +1,7 @@
+#
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
+#
 
 from pyspec.client.SpecMotor import SpecMotorA
 from pyspec.client.SpecConnection import SpecConnection

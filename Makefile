@@ -97,6 +97,11 @@ DATASHM_SRC = datashm_py.c setup.py README
 
 DOCS_SRC = installation.rst spec_format.rst 
 
+DIRS = docs tools datashm python \
+	python/client python/client/examples python/hardware \
+	python/graphics python/tools python/file python/doc
+
+
 # Keep gmake from trying to check out a file from  source code control
 %: %,v
 %: RCS/%,v
@@ -238,7 +243,8 @@ tarball:
 	  | ${PACK} > pyspec_src.tar.gz
 
 clean:
-	-@rm -rf pyspec.tmp
-	-@rm -f pyspec_src.tar.gz pyspec_built.tar.gz
-	-@rm -f *.o *.bak core datashm/*.bak 
-	-@rm -fr datashm/build datashm/datashm.o datashm/sps.o
+	@rm -rf pyspec.tmp
+	@rm -f pyspec_src.tar.gz pyspec_built.tar.gz
+	@rm -f *.o *.bak core
+	@for i in ${DIRS}; do rm -f $$i/*.o $$i/*.bak ; done
+	@rm -fr datashm/build
