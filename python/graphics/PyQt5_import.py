@@ -42,7 +42,8 @@ try:
     from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGridLayout, \
         QLabel, QComboBox, QHBoxLayout, QRadioButton, \
         QPushButton, QApplication, QColorDialog, QMainWindow, \
-        QWidget, QTreeWidgetItem, QButtonGroup, QTreeWidget, \
+        QWidget, QButtonGroup, \
+        QListWidgetItem, QListWidget, QTreeWidgetItem, QTreeWidget, \
         QSplitter,  QTabWidget, QMenuBar, QMessageBox, QSpacerItem,  \
         QLineEdit, QHeaderView, QSpinBox, QTextBrowser,  \
         QMenu, QAction, QTabBar, QStackedWidget,  QFileDialog,  \
