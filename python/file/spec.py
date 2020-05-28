@@ -63,8 +63,7 @@ import numpy
 import os
 import sys
 import time
-
-from css_logger import log
+import string
 
 class FileSpecFormatUnknown(BaseException):
     pass
@@ -166,21 +165,23 @@ class FileSpec(list):
         else:
             fb = None
 
-        line = self.fd.readline()
-        lineno = -1
+        data = self.fd.read()
+        lines = data.split('\n')
 
-        while line:
-            lineno += 1
-            sline = line.strip()
+        t0 = time.time()
+        print("    - indexing") 
 
-            if len(sline) >= 3 and sline[0] == "#" and sline[1] in ['S', 'F', 'E']:
+        for lineno, sline in enumerate(data.split('\n#')):
+            #sline = line.strip()
 
-                btype = sline[1]
+            #if len(sline) >= 3 and sline[0] == "#" and sline[1] in ['S', 'F', 'E']:
+            if sline[0] in ['S','F','E']:
+
+                btype = sline[0]
 
                 if btype in ['F','E']:
-                    if sline[2] != " ":  # block not followed by space is not a block. ignore line
+                    if sline[1] != " ":  # block not followed by space is not a block. ignore line
                        log.log(3,"ignoring wrong file block")
-                       line = self.fd.readline()
                        continue
 
                 blockstart = self.lastpos
@@ -189,18 +190,16 @@ class FileSpec(list):
                 if fb is not None:
                     fb.end()
 
-                if btype == 'F':
-                    self.origfilename = sline[2:].strip()
+                if btype == 'F' or (btype == 'E' and not self.inheader) :
+                    if btype == 'F':
+                        self.origfilename = sline[2:].strip()
                     fb = Header(blockstart, blockline)
                     self.inheader = True
+                    print("NEW HEADER")
                     self.headers.append(fb)
-                elif btype == 'E' and not self.inheader:
-                    fb = Header(blockstart, blockline)
-                    self.inheader = True
-                    self.headers.append(fb)
-                elif sline[1] == 'S':
+                elif btype == 'S':
                     fb = Scan(blockstart, blockline)
-                    fb.addSLine(sline[3:])
+                    fb.addSLine(sline[2:])
                     self.inheader = False
                     self.append(fb)
                     fb._setScanIndex(len(self))
@@ -216,8 +215,8 @@ class FileSpec(list):
 
             self.lastpos = self.fd.tell()
 
-            line = self.fd.readline()
 
+        print("    - indexing done {:3.2f}".format(time.time()-t0))
 
         # register last block
         if fb is not None:
@@ -321,18 +320,26 @@ class FileBlock:
         oned_idx = 0
         data_line = 0
         comp_line = 2  # The mca data is between 2 data counter lines.
-        for sline in self.lines:
+
+        t0 = time.time()
+        print("    - parsing %s" % self.__class__)
+
+        for line in self.lines:
+          for sline in line.split('\n'):
+
             lineno += 1
+
             if not sline:
                 continue
 
-            if len(sline) > 1 and sline[0] == "#":
-                widx = sline.find(" ")
-                if widx < 2:
-                    continue
+            first_char = sline[0]
 
-                metakey = sline[1]
-                metaval = sline[2:widx].strip()
+            if first_char in string.ascii_letters + '@':
+
+                widx = sline.find(" ")
+
+                metakey = sline[0]
+                metaval = sline[1:widx].strip()
                 content = sline[widx:].strip()
 
                 if metakey in self.funcs:
@@ -342,10 +349,10 @@ class FileBlock:
                         lineno, sline, "unknown header line (%s) " % metakey)
             else:
                 data_line += 1
-                if sline[0:2] == '@A':
+                if sline[0:1] == '@A':
                     if data_line == 1:
                         comp_line = 1  # The mca data is the first line.
-                    sline = sline[2:]
+                    sline = sline[1:]
                     self.reading_mca = True
                     if self._find_oned:
                         self._oneds.append(OneD())
@@ -376,8 +383,9 @@ class FileBlock:
                     except ValueError:
                         self.wrongLine(lineno, sline, "cannot parse line ")
 
-
         self.is_parsed = True
+        print("    - parsing done {:3.2f}".format(time.time()-t0))
+
         self.finalizeParsing()
 
     def finalizeParsing(self):
@@ -571,9 +579,6 @@ class Scan(FileBlock):
         The scan index is the position of the scan in the file. The scan number is the number given by spec
         to the scan at the time it was executed.  
         """
-        if self._number == 0 and not self.is_parsed:
-            self.parse()
-
         return self._number
 
     def getOrder(self):
@@ -616,9 +621,6 @@ class Scan(FileBlock):
         """
         Returns a string containing the command that was run in spec to start the scan
         """
-        if self._number == 0 and not self.is_parsed:
-            self.parse()
-
         return self._command
 
     def getMotorNames(self):
