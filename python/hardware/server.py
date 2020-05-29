@@ -122,10 +122,12 @@ class CommandHandler(asyncore.dispatcher):
         asyncore.dispatcher.__init__(self,*args)
         self.pending_commands = []
         self.writebuf = ''
+        self.databuf = ''
         self.readbuf = ''
         self.last_cmdno = -1
         self.data_expected = 0
         self.received_data = ''
+        self.sending_data = False
     
     def command_waiting(self):
         return True if self.pending_commands else False
@@ -155,13 +157,19 @@ class CommandHandler(asyncore.dispatcher):
         self.writebuf += outstr
 
     def send_data(self,strdata):
-        self.writebuf += strdata
+        log.log(1,"sending data") 
+        log.log(1," strdata is %s" % type(strdata))
+        self.sending_data = True
+        self.databuf = strdata
 
     def readable(self):
         return True
 
     def writable(self):
-        return True if self.writebuf else False
+        if self.writebuf or self.sending_data:
+            return True
+        else:
+            return False
 
     def handle_read(self):
         newdata = self.recv(32768)
@@ -220,12 +228,25 @@ class CommandHandler(asyncore.dispatcher):
                     self.last_cmdno = cmdno
 
     def handle_write(self):
-        if sys.version_info[0] >= 3:
-            sent = self.send( self.writebuf.encode() )
-        else:
-            sent = self.send( self.writebuf )
-        self.writebuf = self.writebuf[sent:]
-        log.log(3, "%s values sent. %s remain.", sent,len(self.writebuf))
+
+        if self.writebuf:
+            if sys.version_info[0] >= 3:
+                sent = self.send( self.writebuf.encode() )
+            else:
+                sent = self.send( self.writebuf )
+
+            self.writebuf = self.writebuf[sent:]
+            log.log(3, "%s values sent. %s remain.", sent,len(self.writebuf))
+
+        if self.sending_data:  # data is always sent raw / as bytes
+            log.log(1, "sending data")
+            sent = self.send( self.databuf )
+            self.databuf = self.databuf[sent:]
+            if self.databuf:
+                log.log(1, "%s values sent. %s remain.", sent,len(self.databuf))
+            else:
+                log.log(1,"all data sent")
+                self.sending_data = False
 
     def handle_close(self):
         log.log(2, "Connection closed")
