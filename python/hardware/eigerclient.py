@@ -82,7 +82,8 @@ class CommandHandlerThread(threading.Thread):
 
         if status == 200:
             data_l = json.loads(data)
-            if cmdname in ['arm', 'trigger']:
+            if isinstance(data_l,dict) and cmdname in ['arm', 'trigger']:
+                log.log(2, "answer to %s is : %s" % (cmdname, str(data_l)))
                 if 'sequence_id' in data_l.keys():
                     answer = data_l['sequence id']
                 else:
@@ -311,6 +312,9 @@ class DEigerClient(object):
             self._user = base64.encodestring(user).replace('\n', '')
        
 
+
+    def set_version(self, version):
+        self._version = version
 
     def version(self,module = 'detector'):
         """
