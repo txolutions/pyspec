@@ -32,7 +32,7 @@ import re
 import fnmatch
 import shutil
 
-from server import log
+from pyspec.hardware.server import log
 
 Version = '1.5.0'
 
@@ -233,6 +233,8 @@ class DEigerClient(object):
         self._user = None
         self._connectionTimeout = MAX_TIMEOUT
 
+        log.log(2, "DEigerClient created - host: %s / port: %s (verbose=%s)" % (self._host, self._port, self._verbose))
+
         #pingret = os.system("ping -c 1 -w 1 -W 10 %s > /dev/null 2>&1" % self._host)
         #if pingret != 0:
             #raise BaseException("Cannot access DCU")
@@ -274,6 +276,7 @@ class DEigerClient(object):
             verbose: bool value
         """
         self._verbose = bool(verbose)
+        log.log(2, "DEigerClient verbose level set to %s" % (verbose))
         
     def setConnectionTimeout(self, timeout):
         """
@@ -311,9 +314,11 @@ class DEigerClient(object):
         else:
             self._user = base64.encodestring(user).replace('\n', '')
        
-
+    def set_verbose(self, verbose):
+        self._verbose = verbose
 
     def set_version(self, version):
+        self._log("eigerclient version set to %s" % version)
         self._version = version
 
     def version(self,module = 'detector'):
@@ -453,20 +458,54 @@ class DEigerClient(object):
             try:
                 cmd_name = self.detector_command.getCommandName()
                 ret_value = self.detector_command.getCommandAnswer()
+                if cmd_name == 'check_connections':
+                    try:
+                        ans = ret_value['value']    
+                        ret_value = ""
+                        for conn in ans: 
+                            ret_value += '{name}={up},'.format(**conn)
+                    except:
+                        ret_value = "cannot parse result"
+                else:
+                    ret_value = str(ret_value)
                 self.cmd_answer[cmd_name] = ret_value
                 log.log(2,"command %s finished execution. answer is: %s" % (cmd_name, ret_value))
             except BaseException as e:
                 log.log(1,"error update command: %s" % str(e))
 
-            self.detector_command = None
+            # self.detector_command = None
 
 
     def isExecutingCommand(self):
         self.updateCommandStatus()
-        return (self.detector_command is not None)
+        if self.detector_command is not None:
+            return self.detector_command.is_alive()
+        else:
+            return False
 
     def getSequenceID(self):
         return self.cmd_answer.get('startacq', None)
+
+    def getCommandName(self):
+        if self.detector_command is None:
+            return "none"
+        
+        return self.detector_command.getCommandName()
+
+    def getAnswer(self, command=None):
+        if self.detector_command is None:
+            return "none"
+        
+        latest_command = self.getCommandName()
+
+        if command is None or command == latest_command: 
+            if self.detector_command.is_alive():
+                return "busy"
+
+        if command is None:
+            command = latest_command
+         
+        return self.cmd_answer.get(command,"none")
 
     def detectorStatus(self, param = 'keys'):
         """Get detector status information
