@@ -65,10 +65,10 @@ def is_remote(host):
         return True
 
 def is_python2():
-    return sys.version_info.major == 2
+    return sys.version_info[0]== 2
 
 def is_python3():
-    return sys.version_info.major == 3
+    return sys.version_info[0] == 3
 
 if __name__ == '__main__':
    print("MacOS: ", is_macos())

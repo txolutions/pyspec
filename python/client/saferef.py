@@ -40,7 +40,7 @@
 import collections
 import traceback
 import weakref
-from functools import total_ordering
+# from functools import total_ordering
 
 
 def safe_ref(target, on_delete=None):
@@ -81,7 +81,7 @@ def safe_ref(target, on_delete=None):
         return weakref.ref(target)
 
 
-@total_ordering
+# @total_ordering
 class BoundMethodWeakref(object):
     """'Safe' and reusable weak references to instance methods.
 
@@ -230,6 +230,27 @@ class BoundMethodWeakref(object):
             return self.__class__ < type(other)
         else:
             return self.key < other.key
+
+    def __gt__(self, other):
+        """Compare with another reference."""
+        if not isinstance(other, self.__class__):
+            return self.__class__ > type(other)
+        else:
+            return self.key > other.key
+
+    def __ge__(self, other):
+        """Compare with another reference."""
+        if not isinstance(other, self.__class__):
+            return self.__class__ >= type(other)
+        else:
+            return self.key >= other.key
+
+    def __le__(self, other):
+        """Compare with another reference."""
+        if not isinstance(other, self.__class__):
+            return self.__class__ <= type(other)
+        else:
+            return self.key <= other.key
 
     def __call__(self):
         """Return a strong reference to the bound method.
