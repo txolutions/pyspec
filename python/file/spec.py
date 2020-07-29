@@ -175,6 +175,8 @@ class FileSpec(list):
             #sline = line.strip()
 
             #if len(sline) >= 3 and sline[0] == "#" and sline[1] in ['S', 'F', 'E']:
+            if not sline.strip(): continue
+
             if sline[0] in ['S','F','E']:
 
                 btype = sline[0]
