@@ -43,8 +43,8 @@ ifneq (, $(shell which python2 2>/dev/null))
        override PY2="python2"
 endif
 
-OWNER := $(shell grep -s owner= ../../install_data | sed 's/owner=//')
-SPECD := $(shell grep -s aux= ../../install_data | sed 's/aux=//')
+OWNER := $(shell grep -s owner= ../install_data | sed 's/owner=//')
+SPECD := $(shell grep -s aux= ../install_data | sed 's/aux=//')
 
 ifeq (${strip ${SPECD}}, )
 SPECD = /usr/local/lib/spec.d
