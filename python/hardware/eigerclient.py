@@ -643,9 +643,15 @@ class DEigerClient(object):
             return self._getRequest(self._url('monitor','images',parameter = "monitor"), dataType = "tif")
         else:
             try:
-                seqId = int(param[0])
-                imgId = int(param[1])
-                return self._getRequest(self._url('monitor',"images", parameter = "{0}/{1}".format(seqId,imgId) ), dataType = 'tif')
+                if len(param) == 2:
+                    seqId = int(param[0])
+                    imgId = int(param[1])
+                    return self._getRequest(self._url('monitor',"images", parameter = "{0}/{1}".format(seqId,imgId) ), dataType = 'tif')
+                elif len(param) == 3:
+                    seqId = int(param[0])
+                    imgId = int(param[1])
+                    threshId = int(param[2])
+                    return self._getRequest(self._url('monitor',"images", parameter = "{0}/{1}/{2}".format(seqId,imgId,threshId) ), dataType = 'tif')
             except (TypeError, ValueError):
                 pass
         raise RuntimeError('Invalid parameter {0}'.format(param))
