@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)roi_selector.py	6.1  05/11/20 CSS
+#  "pyspec" Release 6
 #
 
 import os
@@ -64,10 +64,6 @@ class RoiNavigationBar(NavigationToolbar):
 class RoiSelector(QWidget):
 
     image_dir = "/data/images"
-
-    setroi_macro = "eiger_setroi"
-    getroi_macro = "eiger_getroi"
-    getcounters_macro = "eiger_getcounters"
 
     rows = 514
     cols = 1030
@@ -228,6 +224,11 @@ class RoiSelector(QWidget):
                 self.counter_combo.hide()
 
             self.set_roiname(self.cnts[0])
+
+    def set_detector(self, prefix):
+        self.setroi_macro = "%s_setroi" % prefix
+        self.getroi_macro = "%s_getroi" % prefix
+        self.getcounters_macro = "%s_getcounters" % prefix
 
     def set_roiname(self, roiname):
         if roiname is None:
@@ -475,19 +476,20 @@ class RoiSelector(QWidget):
 
 
 def printUsage():
-    print("Usage: %s spec_app" % sys.argv[0])
+    print("Usage: %s spec_app detector" % sys.argv[0])
 
 def main():
     import sys
 
     nb_args = len(sys.argv)
     
-    if nb_args != 2:
+    if nb_args != 3:
         print("Wrong usage")
         printUsage() 
         sys.exit(0)
 
     spec = sys.argv[1]
+    detector = sys.argv[2]
 
     app = QApplication([])
     win = QMainWindow()
@@ -497,6 +499,7 @@ def main():
     win.setCentralWidget(wid)
     win.show()
     win.resize( 500, 700 )
+    wid.set_detector(detector)
     wid.set_spec(spec)
     wid.load_image()
 
