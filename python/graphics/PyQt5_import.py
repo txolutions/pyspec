@@ -54,6 +54,9 @@ try:
     from PyQt5.QtGui import QFont, QIcon, QFontMetrics, QPen, QColor, QPainter, \
         QPixmap, QBrush, QPainterPath , QDesktopServices 
 
+    from PyQt5.QtGui import QIntValidator, QRegExpValidator, QDoubleValidator, \
+            QValidator
+
     from PyQt5.QtCore import QObject, QTimer,  QProcess, QEvent, QSize, \
          QLine, QRect, QPoint, QRectF, QUrl, QUrlQuery, QCoreApplication, \
          pyqtSignal

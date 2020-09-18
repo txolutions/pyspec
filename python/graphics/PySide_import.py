@@ -55,6 +55,9 @@ try:
     from PySide.QtGui import QFont, QIcon, QFontMetrics, QPen, QColor, QPainter, \
         QPixmap, QBrush, QPainterPath , QDesktopServices
 
+    from PySide.QtGui import QIntValidator, QRegExpValidator, QDoubleValidator, \
+            QValidator
+
     from PySide.QtCore import QObject, QTimer,  QProcess, QEvent, QSize, \
             QLine, QRect, QPoint, QRectF, QUrl, QCoreApplication 
 
