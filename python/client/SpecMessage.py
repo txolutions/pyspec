@@ -86,8 +86,6 @@ def rawtodictonary(rawstring):
     #else:
     raw = rawstring.split(NULL)[:-2]
 
-    log.log(2, "converting to dict raw data %s" % raw)
-
     data = {}
     for i in range(0,len(raw) - 1,2):
         key,val = raw[i], raw[i+1]

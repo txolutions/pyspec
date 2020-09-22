@@ -79,7 +79,6 @@ class Receiver:
         slot = self.weakReceiver() # get the strong reference
 
         if slot is not None:
-            log.log(DEBUG, "calling receiver slot %s" % slot)
             return robustApply(slot, arguments)
 
 
@@ -89,8 +88,6 @@ class Event:
         senderId = id(sender)
         signal = str(signal)
         self.args = arguments
-
-        log.log(DEBUG, " creating event for signal %s - senderId is %s" % (signal, senderId))
 
         try:
             self.receivers = connections[senderId][signal]
@@ -118,7 +115,6 @@ class EventQueue(object):
         EventQueue.queue.mutex.acquire()
 
         try:
-            log.log(DEBUG,"adding event. receiversList is %s" % event.receivers)
             showstatus()
             was_empty = not EventQueue.queue._qsize()
 
@@ -137,7 +133,6 @@ class EventQueue(object):
             log.log(DEBUG,"could not add event to queue %s" % traceback.format_exc())
         finally:
             EventQueue.queue.mutex.release()
-        log.log(DEBUG,"adding event done")
 
 eventsToDispatch = EventQueue()
 connections = {} # { senderId0: { signal0: [receiver0, ..., receiverN], signal1: [...], ... }, senderId1: ... }
@@ -157,8 +152,6 @@ def connect(sender, signal, slot, dispatchMode = UPDATEVALUE):
     senderId = id(sender)
     signal = str(signal)
     signals = {}
-
-    log.log(DEBUG,"connecting (%s) %s to %s - %s" % (str(sender), senderId, signal, signals))
 
     if senderId in connections:
         signals = connections[senderId]
@@ -221,7 +214,7 @@ def disconnect(sender, signal, slot):
             if toDel is not None:
                 receivers.remove(toDel)
 
-                log.log(DEBUG, "cleaning up connections, because sender is removed %s" % senderId)
+                # log.log(DEBUG, "cleaning up connections, because sender is removed %s" % senderId)
                 _cleanupConnections(senderId, signal)
     
 def showstatus():
@@ -241,9 +234,7 @@ def showstatus():
 def emit(sender, signal, arguments = ()):
     try:
         ev = Event(sender, signal, arguments)
-        log.log(DEBUG, "adding event with signal \"%s\" to the queue %s (%s)" % (signal,ev, id(eventsToDispatch)))
         eventsToDispatch.put(ev)
-        log.log(DEBUG,"is queue empty0 %s" % eventsToDispatch.empty())
     except:
         log.log(DEBUG,"failed adding event")
         import traceback
@@ -258,7 +249,6 @@ def dispatch(max_time_in_s=1):
         try:
             if eventsToDispatch.empty():
                 break
-            log.log(DEBUG,"is queueue empty %s" % eventsToDispatch.empty())
             receiver, args = eventsToDispatch.get()
         except queue.Empty:
             log.log(2, "uhmmm")
@@ -268,7 +258,6 @@ def dispatch(max_time_in_s=1):
             import traceback
             log.log(1, traceback.format_exc())
         else:
-            log.log(DEBUG,"got a new event to dispatch with args %s" % str(args))
             receiver(args)
             if max_time_in_s < 0:
               continue
@@ -286,7 +275,7 @@ def _removeSender(senderId):
 
 def _removeReceiver(weakReceiver):
     """Remove receiver from connections"""
-    log.log(DEBUG, "cleaning up connections, because receiver is removed %s" % str(weakReceiver))
+    #log.log(DEBUG, "cleaning up connections, because receiver is removed %s" % str(weakReceiver))
     return
     for senderId in list(connections.keys()):
         for signal in list(connections[senderId].keys()):
@@ -306,11 +295,8 @@ def _cleanupConnections(senderId, signal):
 
     receivers = connections[senderId][signal]
 
-    log.log(DEBUG, "   number of receivers is %d" % len(receivers))
-
     if len(receivers) == 0:
         # no more receivers
-        log.log(DEBUG, "   - deleting connection for %s" % senderId)
         signals = connections[senderId]
         del signals[signal]
 

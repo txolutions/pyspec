@@ -321,7 +321,6 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
 
     def isSpecConnected(self):
         """Return True if the remote Spec version is connected."""
-        log.log(DEBUG, "am i connected? state is %s" % self.state)
         return self.state == CONNECTED
 
 
@@ -380,8 +379,6 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
 
         self.receivedStrings.append(_received)
 
-        log.log(DEBUG,"received new data from spec")
-
         if is_python3():
             s = b''.join(self.receivedStrings)
             sbuffer = memoryview(s)
@@ -395,25 +392,17 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
 
         while offset < len(sbuffer):
             if self.message is None:
-                log.log(DEBUG,"creating a new message")
                 self.message = SpecMessage.message(version = self.serverVersion)
-            else:
-                log.log(DEBUG,"adding data to existing message")
 
             consumedBytes = self.message.readFromStream(sbuffer[offset:])
-            log.log(DEBUG,"  bytes consumed %s" % consumedBytes)
-
-            log.log(DEBUG," message complete? %s" % self.message.isComplete())
 
             if consumedBytes == 0:
-                log.log(DEBUG,"  no bytes consumed")
                 break
 
             offset += consumedBytes
 
 
             if self.message.isComplete():
-                log.log(DEBUG, "new message from spec %s / name %s" % (self.message.cmd, self.message.name)) 
                 try:
                     # dispatch incoming message
                     if self.message.cmd == SpecMessage.REPLY:
@@ -430,7 +419,6 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
                                 reply.update(self.message.data, self.message.type == SpecMessage.ERROR, self.message.err)
                                 #SpecEventsDispatcher.emit(self, 'replyFromSpec', (replyID, reply, ))
                     elif self.message.cmd == SpecMessage.EVENT:
-                        log.log(2, "got a new event from spec name=%s, data=%s" % (self.message.name, self.message.data))
                         try:
                             self.registeredChannels[self.message.name].update(self.message.data, self.message.flags == SpecMessage.DELETED)
                         except KeyError:
@@ -439,12 +427,10 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
                         except:
                             import traceback
                             log.log(2, traceback.format_exc())
-                        log.log(DEBUG, "AFTER event: %s" % str(self.registeredChannels))
                     elif self.message.cmd == SpecMessage.HELLO_REPLY:
                         if self.checkourversion(self.message.name):
                             self.serverVersion = self.message.vers #header version
                             #self.state = CONNECTED
-                            log.log(DEBUG, "Hello reply. all right. connected")
                             self.specConnected()
                         else:
                             self.serverVersion = None
@@ -503,7 +489,6 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
 
         Send all the messages from the queue.
         """
-        log.log(DEBUG, "writing to socket")
         while len(self.sendq) > 0:
             self.outputStrings.append(self.sendq.pop().sendingString())
 
@@ -512,7 +497,6 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         else:
             outputBuffer = ''.join(self.outputStrings)
 
-        log.log(DEBUG,"SpecConnection - writing data out")
         sent = self.send(outputBuffer)
 
         self.outputStrings = [ outputBuffer[sent:] ]
@@ -607,7 +591,6 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         chanName -- a string representing the channel name, i.e. 'var/toto'
         value -- channel value
         """
-        log.log(DEBUG,"message channel send channel=%s, value=%s" % (chanName, value))
         if self.isSpecConnected():
             try:
                 self.__send_msg_no_reply(SpecMessage.msg_chan_send(chanName, value, version = self.serverVersion))
@@ -615,7 +598,6 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
                 import traceback
                 log.log(1, traceback.format_exc())
         else:
-            log.log(DEBUG," not connected")
             raise SpecClientNotConnectedError
 
 
