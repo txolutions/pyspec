@@ -61,9 +61,11 @@ INSDIR  = /usr/local/bin
 TAR     = tar
 PACK    = gzip -c
 UNPACK  = gunzip -c
-SPEC_SRC = ../..
 
-DIST_SRC = VERSION.py
+# removed to be used with --specsrc=
+#SPEC_SRC = ../..
+
+DIST_SRC = VERSION.py MANIFEST.in setup.py
 
 SRC = Makefile ${DIST_SRC} versionsave version_template.py
 
@@ -78,7 +80,8 @@ MODULES = datashm.so
 CLIENT_SRC = __init__.py saferef.py Spec.py SpecArray.py SpecChannel.py \
 	SpecClientError.py SpecCommand.py SpecConnection.py SpecConnectionsManager.py \
 	SpecCounter.py SpecEventsDispatcher.py SpecMessage.py SpecMotor.py \
-	SpecReply.py SpecScan.py SpecServer.py SpecVariable.py SpecWaitObject.py
+	SpecReply.py SpecScan.py SpecServer.py SpecVariable.py SpecWaitObject.py \
+	spec_shm.py
 
 EXAMPLES = README example_qt_command.py	example_qt_motor.py \
 	example_qt_status.py example_qt_variable.py
@@ -93,11 +96,11 @@ FILE_SRC = __init__.py spec.py tiff.py
 
 PYDOC_SRC = __init__.py spec_help.tpl SpecHTMLreST.py SpecMANreST.py
 
-DATASHM_SRC = datashm_py.c setup.py README
+DATASHM_SRC = datashm_py.c sps.h sps.c spec_shm.h setup.py README
 
 DOCS_SRC = installation.rst spec_format.rst 
 
-DIRS = docs tools datashm python \
+DIRS = docs tools python python/datashm \
 	python/client python/client/examples python/hardware \
 	python/graphics python/tools python/file python/doc
 
@@ -130,11 +133,11 @@ install_it: owner_chk untar
 prep_datashm:
 ifneq (,${PY2})
 	@echo "Compiling datashm module for ${PY2}"
-	@cd datashm >/dev/null; ${PY2} setup.py --specsrc=${SPEC_SRC} build
+	@cd python/datashm >/dev/null; ${PY2} setup.py build
 endif
 ifneq (,${PY3})
 	@echo "Compiling datashm module for ${PY3}"
-	@cd datashm >/dev/null; ${PY3} setup.py --specsrc=${SPEC_SRC} build
+	@cd python/datashm >/dev/null; ${PY3} setup.py build
 endif
 
 version:
@@ -163,11 +166,11 @@ prep_dist: prep_datashm
 	 (cd python/file >/dev/null; cp ${FILE_SRC} ../../pyspec.tmp/file/)
 	 (cd python/doc >/dev/null; cp ${PYDOC_SRC} ../../pyspec.tmp/doc/)
 ifneq (,${PY2})
-	@cd datashm >/dev/null; ${PY2} setup.py --specsrc=${SPEC_SRC} install --install-lib=../pyspec.tmp
+	@cd python/datashm >/dev/null; ${PY2} setup.py install --install-lib=../../pyspec.tmp
 	@cd pyspec.tmp && ${PY2} -m compileall .
 endif
 ifneq (,${PY3})
-	@cd datashm >/dev/null; ${PY3} setup.py --specsrc=${SPEC_SRC} install --install-lib=../pyspec.tmp
+	@cd python/datashm >/dev/null; ${PY3} setup.py install --install-lib=../../pyspec.tmp
 	@cd pyspec.tmp && ${PY3} -m compileall .
 endif
 	@cd pyspec.tmp >/dev/null; chmod a-w * */*; \
@@ -199,7 +202,7 @@ list:
 	-@rm -f ,list; ( \
 	  for i in ${SRC}; do echo $$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
-	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
+	  for i in ${DATASHM_SRC}; do echo python/datashm/$$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
 	  for i in ${PY_SRC}; do echo python/$$i; done; \
 	  for i in ${TOOLS_PY}; do echo python/tools/$$i; done; \
@@ -215,7 +218,7 @@ distlist:
 	-@rm -f ,distlist; ( \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
 	  for i in ${DIST_SRC}; do echo $$i; done; \
-	  for i in ${MODULES}; do echo $$i; done; \
+	  for i in ${MODULES}; do echo python/client/$$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
 	  for i in ${TOOLS_PY}; do echo python/tools/$$i; done; \
 	  for i in ${PY_SRC}; do echo python/$$i; done; \
@@ -231,7 +234,7 @@ tarball:
 	  for i in ${SRC}; do echo $$i; done; \
 	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
-	  for i in ${DATASHM_SRC}; do echo datashm/$$i; done; \
+	  for i in ${DATASHM_SRC}; do echo python/datashm/$$i; done; \
 	  for i in ${PY_SRC}; do echo python/$$i; done; \
 	  for i in ${CLIENT_SRC}; do echo python/client/$$i; done; \
 	  for i in ${EXAMPLES}; do echo python/client/examples/$$i; done; \
@@ -247,4 +250,4 @@ clean:
 	@rm -f pyspec_src.tar.gz pyspec_built.tar.gz
 	@rm -f *.o *.bak core
 	@for i in ${DIRS}; do rm -f $$i/*.o $$i/*.bak ; done
-	@rm -fr datashm/build
+	@rm -fr python/datashm/build

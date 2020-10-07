@@ -2,4 +2,6 @@ datashm/build
 */__pycache__
 *pyc
 */*pyc
+*o
 pyspec.tmp
+python/datashm/build/*/*

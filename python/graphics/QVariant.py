@@ -304,4 +304,4 @@ No compatible installation was found.
 
 Make sure compatible graphical libraries are installed in your system.
 """).format( progname=os.path.basename(sys.argv[0]) )
-        sys.exit(1)
+        raise ImportError
