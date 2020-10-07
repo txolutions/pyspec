@@ -65,7 +65,7 @@ UNPACK  = gunzip -c
 # removed to be used with --specsrc=
 #SPEC_SRC = ../..
 
-DIST_SRC = VERSION.py
+DIST_SRC = VERSION.py MANIFEST.in setup.py
 
 SRC = Makefile ${DIST_SRC} versionsave version_template.py
 
