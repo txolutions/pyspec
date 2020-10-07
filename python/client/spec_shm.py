@@ -1,16 +1,15 @@
-#!/bin/sh
 #******************************************************************************
 #
 #  %W%  %G% CSS
 #
-#  "pyspec" Release %R%
+#  "splot" Release %R%
 #
 #  Copyright (c) 2013,2014,2015,2016,2020
 #  by Certified Scientific Software.
 #  All rights reserved.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
-#  copy of this software ("pyspec") and associated documentation files (the
+#  copy of this software ("splot") and associated documentation files (the
 #  "Software"), to deal in the Software without restriction, including
 #  without limitation the rights to use, copy, modify, merge, publish,
 #  distribute, sublicense, and/or sell copies of the Software, and to
@@ -35,33 +34,56 @@
 #
 #******************************************************************************
 
-me=`basename "$0"`
+import time
 
-PYTHON=
-SPECD=${SPECD:-/usr/local/lib/spec.d}
+from pyspec.css_logger import log
 
-check_prog() {
-   command -v $1 >/dev/null 2>&1 && echo 1 || echo 0
-}
+from pyspec import datashm
 
-check_python() {
-   if [ `check_prog $1` = 1 ]
-   then
-       PYTHON="$1"
-   fi
-}
+# provide through this module all functionalities of datashm
+from pyspec.datashm import getdata, getspeclist
+from pyspec.datashm import getinfo, getdatacol, getdatarow
+from pyspec.datashm import getarrayinfo, getarraylist
+from pyspec.datashm import getmetadata
 
-check_python python3
-if [ ! $PYTHON ];
-then
-    check_python python2
-fi
+class _UpdateTable(object):
 
-if [ ! $PYTHON ];
-then
-    echo "Python not found. Needed to run $me"
-    exit
-fi
+    def __init__(self):
+        self.created = time.time()
+        self._update = {}
 
-exec $PYTHON ${SPECD}/pyspec/tools/$me.py $*
+    def isupdated(self, spec, var, client):
+        if client not in self._update:
+            self._update[client] = {}
+        if spec not in self._update[client]:
+            self._update[client][spec] = {}
+        if var not in self._update[client][spec]:
+            self._update[client][spec][var] = True
 
+        if datashm.isupdated(spec, var):
+            for clnt in self._update:
+                try:
+                    self._update[clnt][spec][var] = True
+                except:
+                    pass
+
+        retval = self._update[client][spec][var]
+        self._update[client][spec][var] = False
+        return retval
+
+class UpdateTable(_UpdateTable):
+
+    def __new__(cls):
+        if not hasattr(cls, '_inst'):
+            cls._inst = super(UpdateTable, cls).__new__(cls)
+        else:
+            def init_pass(self, *dt, **mp): pass
+            cls.__init__ = init_pass
+
+        return cls._inst
+
+global utbl
+utbl = UpdateTable()
+
+def is_updated(spec, var, client):
+    return utbl.isupdated(spec, var, client)
