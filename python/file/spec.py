@@ -168,13 +168,8 @@ class FileSpec(list):
         data = self.fd.read()
         lines = data.split('\n')
 
-        t0 = time.time()
-        print("    - indexing") 
-
         for lineno, sline in enumerate(data.split('\n#')):
-            #sline = line.strip()
 
-            #if len(sline) >= 3 and sline[0] == "#" and sline[1] in ['S', 'F', 'E']:
             if not sline.strip(): continue
 
             if sline[0] in ['S','F','E']:
@@ -197,7 +192,6 @@ class FileSpec(list):
                         self.origfilename = sline[2:].strip()
                     fb = Header(blockstart, blockline)
                     self.inheader = True
-                    print("NEW HEADER")
                     self.headers.append(fb)
                 elif btype == 'S':
                     fb = Scan(blockstart, blockline)
@@ -217,8 +211,6 @@ class FileSpec(list):
 
             self.lastpos = self.fd.tell()
 
-
-        print("    - indexing done {:3.2f}".format(time.time()-t0))
 
         # register last block
         if fb is not None:
@@ -324,7 +316,6 @@ class FileBlock:
         comp_line = 2  # The mca data is between 2 data counter lines.
 
         t0 = time.time()
-        print("    - parsing %s" % self.__class__)
 
         for line in self.lines:
           for sline in line.split('\n'):
@@ -386,7 +377,6 @@ class FileBlock:
                         self.wrongLine(lineno, sline, "cannot parse line ")
 
         self.is_parsed = True
-        print("    - parsing done {:3.2f}".format(time.time()-t0))
 
         self.finalizeParsing()
 

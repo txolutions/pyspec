@@ -46,7 +46,7 @@ try:
         QWidget, QTreeWidgetItem, QButtonGroup, QTreeWidget, \
         QListWidget, QListWidgetItem, \
         QSplitter,  QTabWidget, QMenuBar, QMessageBox, QSpacerItem,  \
-        QLineEdit, QHeaderView, QSpinBox, QTextBrowser,  \
+        QLineEdit, QHeaderView, QSpinBox, QTextEdit, QTextBrowser,  \
         QMenu, QAction, QTabBar, QStackedWidget,  QFileDialog,  \
         QScrollArea, QProgressBar, QStyleOptionSlider, QGroupBox,  \
         QAbstractItemView, QSizePolicy, QFrame, QStyle, QScrollBar, QToolBar, \
