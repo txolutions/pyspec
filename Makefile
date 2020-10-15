@@ -117,7 +117,7 @@ it: prep_dist
 install:
 	@echo "Installing pyspec modules ..."
 	@for i in ${TOOLS}; do rm -f ${INSDIR}/$$i; \
-		sed "/^SPECD=/s;=.*;='${SPECD}';" tools/$$i > ${INSDIR}/$$i; \
+		sed '/^SPECD/s;-.*};-${SPECD}};' tools/$$i >${INSDIR}/$$i; \
 		( chmod 555 ${INSDIR}/$$i; ${CHOWN} ${OWNER} ${INSDIR}/$$i; ) \
 	    done; \
 	mkdir -p ${SPECD}/pyspec
