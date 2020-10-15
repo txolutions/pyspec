@@ -47,7 +47,9 @@ class CSSLogger(logging.Logger):
 class StdOutFormatter(logging.Formatter):
 
     def format(self, record):
+        millis = int(round(record.created%1 * 1000))
         strtime = time.strftime("%H:%M:%S",time.localtime(record.created))
+        strtime += ".%03d" % millis
         basefile = os.path.basename(record.pathname)
         level = record.levelname  
         levelno = record.levelno 
