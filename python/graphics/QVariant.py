@@ -144,6 +144,10 @@ def check_compatible():
 
     return(True)
 
+def check():
+    result = check_compatible() and 1 or 0
+    print(result)
+
 def app_libraries():
     if g_rc.mpl_imported:
          graph_string = "matplotlib %s" % g_rc.mpl_version
