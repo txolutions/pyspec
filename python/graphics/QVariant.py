@@ -145,8 +145,29 @@ def check_compatible():
     return(True)
 
 def check():
-    result = check_compatible() and 1 or 0
-    print(result)
+    compat = check_compatible() and 1 or 0
+
+    # if imports ok try to figure out a buggy python3/PyQt5 installation 
+    if compat:
+        from subprocess import Popen, PIPE
+
+        if sys.version_info[0] == 2:
+            py_exec = 'python2'
+        else:
+            py_exec = 'python3'
+
+        from pyspec import _pyspec_dir
+        inst_path = os.path.join(_pyspec_dir,'..') 
+        shell_command  = "{} -c".format(py_exec)
+        shell_command += " 'import sys;sys.path.append(\"{}\");".format(inst_path)
+        shell_command += " from pyspec.graphics.QVariant import QApplication; app=QApplication([])'"
+        proc = Popen(shell_command, shell=True, stdout=PIPE, stderr=PIPE)
+        out, err = proc.communicate()
+        if proc.returncode != 0:
+            # if starting a qt application ends abnormally
+            compat = -1
+
+    return compat
 
 def app_libraries():
     if g_rc.mpl_imported:
@@ -289,7 +310,7 @@ if not g_rc.qt_imported:
 if __name__ == '__main__':
    # If run standalone print selection
    if "check" in sys.argv:
-       print( check_compatible() and 1 or 0    )
+       print( check() )
    else:
        print_selection()
 else:
