@@ -1,6 +1,9 @@
 
 import os
 
+with open('README.rst') as dfd:
+    long_description = dfd.read()
+
 try:
     from setuptools import setup, Extension, find_packages
     packages = find_packages()
@@ -25,12 +28,13 @@ datashm_ext = Extension('pyspec/datashm',
                     include_dirs = [datashm_dir],
                     sources = datashm_sources,)
 
-setup(name='pyspec',
+setup(name='certif_pyspec',
 	version='1.0',
 	description='Python SPEC modules and tools',
+        long_description=long_description,
 	author='TXOlutions',
 	author_email='txo@txolutions.com',
-        url='http://certif.com',
+        url='http://github.com/txolutions/pyspec',
         packages = packages,
  	ext_modules=[ datashm_ext ],
         install_requires = install_requires,
