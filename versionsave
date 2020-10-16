@@ -18,7 +18,7 @@ VT=`cat $VERSION_TEMPLATE`
 # then try git-describe, then default.
 if test -d .git -o -f .git
 then
-    VN=$(git describe --abbrev=4 HEAD 2>/dev/null)
+    VN=$(git describe --abbrev=6 HEAD 2>/dev/null)
     case _"$VN" in
 	      _) VN="$DEFAULT_VERSION"
 		 ;;
