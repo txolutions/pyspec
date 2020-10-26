@@ -44,6 +44,13 @@ class CSSLogger(logging.Logger):
     def isEnabledFor(self, level):
         return level <= self.getEffectiveLevel()
 
+    def start(self, level=2, filename=None):
+        if filename is not None:
+            addFileHandler(filename)
+        else:
+            addStdOutHandler()
+        self.setLevel(level)
+
 class StdOutFormatter(logging.Formatter):
 
     def format(self, record):
@@ -61,6 +68,9 @@ class StdOutFormatter(logging.Formatter):
         logline = "%s - %s - %-50s  | %s" % (strtime, levelno, fileinfo,msg)
 
         return logline
+
+def start_log(level=2, filename=None):
+    log.start(level,filename)
 
 def addStdOutHandler():
     stdh = logging.StreamHandler()
