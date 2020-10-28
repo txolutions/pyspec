@@ -96,7 +96,7 @@ FILE_SRC = __init__.py spec.py tiff.py
 
 PYDOC_SRC = __init__.py spec_help.tpl SpecHTMLreST.py SpecMANreST.py
 
-DATASHM_SRC = datashm_py.c sps.h sps.c spec_shm.h setup.py README
+DATASHM_SRC = datashm_py.c setup.py README
 
 DOCS_SRC = installation.rst spec_format.rst 
 
