@@ -241,20 +241,3 @@ class _SpecConnectionsManager:
         for connectionName in self.connections.keys():
             self.closeConnection(connectionName)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

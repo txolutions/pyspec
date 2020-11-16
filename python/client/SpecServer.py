@@ -3,13 +3,16 @@
 #
 
 import re
+import time
 import socket
 import asyncore
 
 from pyspec.utils import is_python3
 from pyspec.css_logger import log
 
-import SpecConnection as SpecConnection
+from SpecConnection import MIN_PORT, MAX_PORT
+from SpecConnection import _SpecUpdateThread
+
 import SpecMessage as SpecMessage
 
 class BaseSpecRequestHandler(asyncore.dispatcher):
@@ -101,13 +104,10 @@ class BaseSpecRequestHandler(asyncore.dispatcher):
         self.close()
         self.server.clients.remove(self)
 
-
     def dispatchIncomingMessage(self, message):
         pass
 
-
     def parseCommandString(self, cmdstr):
-
 
         if SpecMessage.NULL in cmdstr:
             cmdparts = cmdstr.split(SpecMessage.NULL)
@@ -193,40 +193,139 @@ class BaseSpecRequestHandler(asyncore.dispatcher):
           for client in self.server.clients:
             client.send_msg_event(chanName, value, broadcast=False)
           
+class SpecServerInfo(object):
+    def __init__(self):
+        self.name = ""
+        self.running = False
 
 class SpecServer(asyncore.dispatcher):
-    def __init__(self, host, name, handler = BaseSpecRequestHandler):
+
+    def __init__(self, host=None, name=None, handler=BaseSpecRequestHandler):
 
         asyncore.dispatcher.__init__(self)
 
-        self.name = name
         self.RequestHandlerClass = handler
-        self.clients = []
+        self._update_thread = None
 
+        if host is None:
+            self.host = "localhost"
+        else:
+            self.host = host  # only needed to select a particular ip in the computer
+
+        self.address = self.host
+        self.name = None
+
+        self.clients = []
         self.commands = {}
+        self.channels = {}
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-
         self.set_reuse_addr()
 
-        if type(name) == type(''):
+        if name is not None:
+            self.set_name(name)
+        else:
+            # delay socket creation
+            log.log(2, "SpecServer created without a name. set a name to start it")
+
+    def set_commands(self, cmds):
+        self.commands.update(cmds)
+
+    def set_command(self, cmdname, cmdinfo):
+        if isinstance(cmdinfo , list):
+            self.commands[cmdname] = cmdinfo
+        else:
+            self.commands[cmdname] = (cmdinfo,)
+
+    def set_channels(self, channels):
+        self.channels.update(channels)
+
+    def set_channel(self, channel_name, channel_info):
+        self.channels[channel_name] = channel_info
+
+    def get_value(self, name):
+        if name in self.channels:
+            getcmd = self.channels[name][1]
+            if getcmd:
+                return getcmd()
+            else:
+                return None
+        return None
+
+    def set_value(self, name, value):
+        if name in self.channels:
+            setcmd = self.channels[name][0]
+            if setcmd:
+                return setcmd(value)
+            else:
+                return none
+        return None
+
+    def get_command_list(self):
+        return ",".join(self.commands.keys())
+
+    def set_name(self,name):
+        if self.name is not None:
+            self.name = name
+            return
+
+        # start only when a name is provided
+        self.name = name
+        self.address = "{}:{}".format(self.host, self.name)
+
+        if isinstance(self.name, str): 
+            # choose a port number from PORT range
             host = ""
-            for p in range(SpecConnection.MIN_PORT, SpecConnection.MAX_PORT):
-                self.server_address = ( host, p )
+            for p in range(MIN_PORT, MAX_PORT):
+                self.server_address = (host,p)
 
                 try:
                     self.bind(self.server_address)
-                except:
-                    continue
-                else:
+                    self.bind_ok = True
                     break
+                except:
+                    # already used. continue
+                    continue
+            else:
+                log.log(2, "ALL server addresses are taken. Cannot start")
         else:
-            self.server_address = (host, name)
-            self.bind(self.server_address)
+            # it is a port number. use that one
+            self.server_address = (self.host, self.name)
+            try:
+                self.bind(self.server_address)
+                self.bind_ok = True
+            except:
+                log.log(2, "Cannot start server on port %s. Already used?" % self.name)
 
-        #print self.server_address
-        self.listen(5)
+        if self.bind_ok:
+            self.listen(5)
 
+    def get_info(self):
+        info = SpecServerInfo()
+        info.running = self.is_running()
+        info.name = self.name
+        return info
+
+    def run(self, name=None):
+        if name is not None:
+            self.set_name(name)
+        elif self.name is None:
+            log.log(2, "cannot start SpecServer without a name.") 
+            return
+
+        if self._update_thread is not None and self._update_thread.is_running():
+           return
+
+        self._update_thread = _SpecUpdateThread()
+        self._update_thread._start() 
+
+    def is_running(self):
+        if self._update_thread is None:
+            return False
+        return self._update_thread.is_running()
+
+    def stop(self):
+        self._update_thread._stop() 
 
     def handle_accept(self):
         try:
@@ -237,10 +336,116 @@ class SpecServer(asyncore.dispatcher):
             conn.setblocking(0)
             self.clients.append(self.RequestHandlerClass(conn, addr, self))
 
-
     def serve_update(self):
         asyncore.loop(timeout=1, count=1)
 
     def serve_forever(self):
         asyncore.loop()
+
+class SpecCommandServerHandler(BaseSpecRequestHandler):
+
+    def __init__(self, *args):
+        BaseSpecRequestHandler.__init__(self, *args)
+
+    def dispatchIncomingMessage(self, message):
+        log.log(2, "dispatching message. message.cmd is %s" % message.cmd)
+        try:
+            if message.cmd == SpecMessage.CHAN_READ:
+                # temporary code (workaround for a Spec client bug)
+                self.getValueAndReply(replyID=message.sn, varname=message.name)
+            elif message.cmd == SpecMessage.CHAN_SEND:
+                self.setValueAndReply(replyID=message.sn,
+                                      varname=message.name, value=message.data)
+            elif message.cmd == SpecMessage.CMD_WITH_RETURN:
+                self.executeCommandAndReply(replyID=message.sn, cmd=message.data)
+            elif message.cmd == SpecMessage.FUNC_WITH_RETURN:
+                self.executeCommandAndReply(replyID=message.sn, cmd=message.data)
+            elif message.cmd == SpecMessage.CMD:
+                # in this case we allow for multiple commands separated by colon
+                cmdstr = message.data
+                cmds = cmdstr.split(";")
+                for cmd in cmds:
+                    #log.log(3,"executing command %s"%cmd)
+                    self.executeCommandAndReply(replyID=message.sn, cmd=cmd)
+            elif message.cmd == SpecMessage.REGISTER:
+                if message.name == 'update':
+                    log.log(3,"update channel registered !")
+                    self.updateRegistered = True
+            else:
+                return False
+            return True
+        except:
+            import traceback
+            log.log(2,traceback.format_exc())
+            return False
+
+    def getValueAndReply(self, replyID, varname):
+        ret = self.server.get_value(varname)
+        if ret is None:
+            self.send_error(replyID, '', 'cannot get variable ' + varname)
+        else:
+            self.send_reply(replyID, '', ret)
+
+    def setValueAndReply(self, replyID, varname, value):
+        ret = self.server.set_value(varname, value)
+        if ret is None:
+            self.send_error(replyID, '', 'cannot set variable ' + varname)
+        else:
+            self.send_reply(replyID, '', ret)
+
+
+class SpecCommandServer(SpecServer):
+
+    def __init__(self, host=None, name=None):
+        super(SpecCommandServer,self).__init__(
+            host, name, handler=SpecCommandServerHandler)
+
+        # channels must be a dictionary indexed by channame
+        # each channame must have as value a list with pointers
+        #      to set and get functions for that channel
+        self.channels = {}
+        self.allow_change_name = True
+        log.log(2,"SpecCommandServer address is: %s " %
+               str(self.address))
+
+    def get_info(self):
+        info = super(SpecCommandServer,self).get_info()
+        info.allow_change_name = self.allow_change_name
+        return info
+        
+    def run(self, name=None, allow_change_name=True):
+        if not self.allow_change_name:
+            if self.name is not None and name != self.name:
+                log.log(1, "cannot start command server with different name")
+                return
+
+        self.allow_change_name = allow_change_name
+        super(SpecCommandServer,self).run(name)
+
+
+if __name__ == "__main__":
+    import sys
+
+    def say_hello(name):
+        print("hello "+name)
+        return "done"
+
+    def set_var(value):
+        log.log(2, "setting variable to %s" % value)
+        return 1
+
+    def get_var():
+        return 5
+
+    def sum_data(data):
+        print("received data %s" % str(data))
+
+    log.start()
+    name  = sys.argv[1]
+    server = SpecCommandServer()
+    server.set_command("hello", say_hello)
+    server.set_channel("myvar", [set_var, get_var])
+    server.run(name=name)
+
+    #server.serve_forever()
 
