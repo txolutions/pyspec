@@ -53,8 +53,8 @@ ldopt = 'install-lib='; lsopt = 'i'
 opts = [( lopt, sopt,'location of spec sources'), (ldopt,lsopt, 'installation directory'), (idopt,isopt, 'installation directory')]
 args, options = FancyGetopt(opts).getopt()
 
-#specsrc = "../.." # default value for specsrc
-specsrc = "." # default value for specsrc
+specsrc = "../../.." # default value for specsrc
+#specsrc = "." # default value for specsrc
 
 # if SPECSRC in environment use that 
 if "SPECSRC" in os.environ:
