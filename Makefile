@@ -84,7 +84,7 @@ CLIENT_SRC = __init__.py saferef.py Spec.py SpecArray.py SpecChannel.py \
 	spec_shm.py
 
 EXAMPLES = README example_qt_command.py	example_qt_motor.py \
-	example_qt_status.py example_qt_variable.py
+	example_qt_status.py example_qt_variable.py example_calc_server.py
 
 HDW_SRC = __init__.py eigerclient.py server.py
 
