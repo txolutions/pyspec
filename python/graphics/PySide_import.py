@@ -44,7 +44,7 @@ try:
         QLabel, QComboBox, QHBoxLayout, QRadioButton, \
         QPushButton, QApplication, QColorDialog, QMainWindow, \
         QWidget, QTreeWidgetItem, QButtonGroup, QTreeWidget, \
-        QListWidget, QListWidgetItem, \
+        QListWidget, QListWidgetItem, QSplashScreen, \
         QSplitter,  QTabWidget, QMenuBar, QMessageBox, QSpacerItem,  \
         QLineEdit, QHeaderView, QSpinBox, QTextEdit, QTextBrowser,  \
         QMenu, QAction, QTabBar, QStackedWidget,  QFileDialog,  \
