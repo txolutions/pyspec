@@ -170,6 +170,7 @@ def check():
     return compat
 
 def app_libraries():
+    import pyspec
     if g_rc.mpl_imported:
          graph_string = "matplotlib %s" % g_rc.mpl_version
     elif g_rc.qwt_imported:
@@ -178,8 +179,10 @@ def app_libraries():
     qt_string = "%s %s" % (g_rc.qt_variant, ".".join(map(str, g_rc.qt_version)))
     py_vers = sys.version_info
     py_string = "%s.%s" % (py_vers[0], py_vers[1])
+    pyspec_vers = pyspec.__version__
 
-    return {"python": py_string, "qt": qt_string, "graphics": graph_string}
+    return {"python": py_string, "qt": qt_string, 
+            "graphics": graph_string, "pyspec": pyspec_vers}
     
 def print_selection():
     if g_rc.mpl_imported:

@@ -432,7 +432,7 @@ Public commands are:
         asyncore.loop(timeout=1,count=1)
 
         if time.time() - self.last_log_print > self.log_period:
-            log.log(2, "command server is running")
+            log.log(4, "command server is running")
             self.last_log_print = time.time()
 
     def is_running(self):
