@@ -52,12 +52,13 @@ check_python() {
 }
 
 check_python python3
-if [ ! $PYTHON ];
+
+if [ ! "$PYTHON" ]
 then
     check_python python2
 fi
 
-if [ ! $PYTHON ];
+if [ ! "$PYTHON" ]
 then
     echo "Python not found. Needed to run $me"
     exit
