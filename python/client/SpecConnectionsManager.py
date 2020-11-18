@@ -115,7 +115,11 @@ class _ThreadedSpecConnectionsManager(threading.Thread):
         """Stop the connections manager thread and dereferences all connections"""
         self.stopEvent.set()
 
-        self.join()
+        try:
+           self.join()
+        except RuntimeError:
+           # forget this for now as this code should dissapera
+           pass
 
         self.__started = False
         self.connections = {}

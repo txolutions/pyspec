@@ -79,8 +79,8 @@ class SpecMotorA(object):
         else:
             self.connection = self.specVersion
 
-        self.connection.connect('connected', self.__connected)
-        self.connection.connect('disconnected', self.__disconnected)
+        self.connection.connect_event('connected', self.__connected)
+        self.connection.connect_event('disconnected', self.__disconnected)
 
         if self.connection.isSpecConnected():
             self.__connected()

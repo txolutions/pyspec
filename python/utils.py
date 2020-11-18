@@ -52,7 +52,7 @@ def is_unity():
     else:
         return False
 
-def is_remote(host):
+def is_remote_host(host):
     if host == 'localhost' or host is None:
          return False
 

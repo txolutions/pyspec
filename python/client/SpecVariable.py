@@ -158,8 +158,8 @@ class SpecVariableA:
             self.connection = SpecConnectionsManager.SpecConnectionsManager().getConnection(specVersion)
         else:
             self.connection = specVersion
-        self.connection.connect('connected', self._connected)
-        self.connection.connect('disconnected', self._disconnected)
+        self.connection.connect_event('connected', self._connected)
+        self.connection.connect_event('disconnected', self._disconnected)
         self.dispatchMode = dispatchMode
 
         if self.connection.isSpecConnected():

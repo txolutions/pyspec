@@ -81,7 +81,7 @@ CLIENT_SRC = __init__.py saferef.py Spec.py SpecArray.py SpecChannel.py \
 	SpecClientError.py SpecCommand.py SpecConnection.py SpecConnectionsManager.py \
 	SpecCounter.py SpecEventsDispatcher.py SpecMessage.py SpecMotor.py \
 	SpecReply.py SpecScan.py SpecServer.py SpecVariable.py SpecWaitObject.py \
-	spec_shm.py
+	spec_shm.py spec_updater.py
 
 EXAMPLES = README example_qt_command.py	example_qt_motor.py \
 	example_qt_status.py example_qt_variable.py example_calc_server.py

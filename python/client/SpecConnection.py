@@ -18,95 +18,89 @@ __version__ = '1.0'
 
 import asyncore
 import socket
-import weakref
 import string
 import traceback
 import sys
 import time
 
 from pyspec.css_logger import log
-from pyspec.utils import is_python3
+from pyspec.utils import is_python3, is_remote_host
 
 from SpecEventsDispatcher import UPDATEVALUE, FIREEVENT
-
 from SpecClientError import SpecClientNotConnectedError
+
 import SpecEventsDispatcher 
+
 import SpecChannel 
 import SpecMessage
 import SpecReply
 
+import spec_updater
 
-DEBUG=4
+try:
+    import spec_shm
+    shm_available = True
+except Exception as e:
+    shm_available = False
 
 asyncore.dispatcher.ac_in_buffer_size = 32768 #32 ko input buffer
 
 (DISCONNECTED, PORTSCANNING, WAITINGFORHELLO, CONNECTED) = (1,2,3,4)
 (MIN_PORT, MAX_PORT) = (6510, 6530)
 
-class SpecConnection:
-    """Represent a connection to a remote Spec
+# timing
+WAIT_HELLO_TIMEOUT = 5  # in seconds. timeout for hello reply
+UPDATER_TIME = 10 # in millisecs.  update time for spec_updater
 
-    Signals:
-    connected() -- emitted when the required Spec version gets connected
-    disconnected() -- emitted when the required Spec version gets disconnected
-    replyFromSpec(reply id, SpecReply object) -- emitted when a reply comes from the remote Spec
-    error(error code) -- emitted when an error event is received from the remote Spec
-    """
-    def __init__(self, *args):
-        """Constructor"""
-        self.dispatcher = SpecConnectionDispatcher(*args)
-        #self.dispatcher.makeConnection()
+def _spec_connection(_class):
+    """ decorator to provide connection parameter singletons """
+    _instances = {}
 
-        SpecEventsDispatcher.connect(self.dispatcher, 'connected', self.connected)
-        SpecEventsDispatcher.connect(self.dispatcher, 'disconnected', self.disconnected)
-        #SpecEventsDispatcher.connect(self.dispatcher, 'replyFromSpec', self.replyFromSpec)
-        SpecEventsDispatcher.connect(self.dispatcher, 'error', self.error)
+    def get_only_one(spec_app):
+        """ creating or just return the one and only class instance.
+            The singleton depends on the parameters used in __init__ """
 
-
-    def __str__(self):
-        return str(self.dispatcher)
-
-
-    def __getattr__(self, attr):
-        """Delegate access to the underlying SpecConnectionDispatcher object"""
-        if not attr.startswith('__'):
-            return getattr(self.dispatcher, attr)
+        t = spec_app.split(":")
+        if len(t) == 2:
+            host, specname = t
         else:
-            raise AttributeError
+            host = "localhost"
+            specname = spec_app
 
+        if _class.class_name == "ThreadedSpecConnection":
+            thread_update = True
+        else:
+            thread_update = False
 
-    def connect(self, signal, cb):
-        SpecEventsDispatcher.connect(self, signal, cb)
+        key = (host, specname, thread_update)
+        if key not in _instances:
+            _instances[key] = _SpecConnection(host, specname, thread_update)
 
-    def connected(self):
-        """Propagate 'connection' event"""
-        SpecEventsDispatcher.emit(self, 'connected', ())
+        return _instances[key]
 
+    return get_only_one
 
-    def disconnected(self):
-        """Propagate 'disconnection' event"""
-        SpecEventsDispatcher.emit(self, 'disconnected', ())
+@_spec_connection
+class ThreadedSpecConnection(object):
+    """ 
+    If using this class events are automatically propagated
+    from updating thread. 
+    Not thread safe. 
+    Alternative: QSpecConnection
+    """
+    class_name = "ThreadedSpecConnection"
 
+@_spec_connection
+class SpecConnection(object):
+    """ 
+    If using this class program must take care of calling conn.update_events() 
+    for events to propagate 
 
-    #def replyFromSpec(self, replyID, reply):
-    #    """Propagate 'reply from Spec' event"""
-    #    SpecEventsDispatcher.emit(self, 'replyFromSpec', (replyID, reply, ))
+    create class with argument:  "host:specname"
+    """
+    class_name = "SpecConnection"
 
-
-    def error(self, error):
-        """Propagate 'error' event"""
-        SpecEventsDispatcher.emit(self, 'error', (error, ))
-
-    def update(self,timeout=0.01):
-        self.dispatcher.makeConnection()
-        if self.dispatcher.socket is not None:
-            fds = {self.dispatcher.socket.fileno(): self.dispatcher}
-            asyncore.loop(timeout, False, fds, 1)
-        SpecEventsDispatcher.dispatch()
-
-
-
-class SpecConnectionDispatcher(asyncore.dispatcher):
+class _SpecConnection(asyncore.dispatcher):
     """SpecConnection class
 
     Signals:
@@ -115,48 +109,51 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
     replyFromSpec(reply id, SpecReply object) -- emitted when a reply comes from the remote Spec
     error(error code) -- emitted when an error event is received from the remote Spec
     """
-    def __init__(self, specVersion):
+    def __init__(self, host, specname, thread_update):
         """Constructor
 
         Arguments:
-        specVersion -- a 'host:port' string
+        spec_app -- a 'host:port' string
         """
         asyncore.dispatcher.__init__(self)
 
-        self.state = DISCONNECTED
-        self.connected = False
+        self.updater = None
+        log.log(2, "creating _SpecConnection. thread_update=%s" % thread_update)
+        self.thread_update = thread_update
+
+        self.socket_connected = False  # a socket is opened
+
+        # state 
+        self.state = DISCONNECTED 
+        self.valid_socket = False
+
+        self.scanports = False
+        self.specname = ''
+
         self.receivedStrings = []
         self.message = None
         self.serverVersion = None
-        self.scanport = False
-        self.scanname = ''
         self.aliasedChannels = {}
         self.registeredChannels = {}
         self.registeredReplies = {}
         self.sendq = []
         self.outputStrings = []
         self.simulationMode = False
-        self.valid_socket = False
 
         # some shortcuts
         self.macro       = self.send_msg_cmd_with_return
         self.macro_noret = self.send_msg_cmd
         self.abort         = self.send_msg_abort
 
-        tmp = str(specVersion).split(':')
-        self.host = tmp[0]
-
-        if len(tmp) > 1:
-            self.port = tmp[1]
-        else:
-            self.port = 6789
+        self.host = host
+        self.specname = specname
 
         try:
-            self.port = int(self.port)
+            self.port = int(self.specname)
+            self.specname = None
         except:
-            self.scanname = self.port
             self.port = None
-            self.scanport = True
+            self.scanports = True
 
         #
         # register 'service' channels
@@ -164,14 +161,60 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         self.registerChannel('error', self.error, dispatchMode = SpecEventsDispatcher.FIREEVENT)
         self.registerChannel('status/simulate', self.simulationStatusChanged)
 
+    def get_host(self):
+        return self.host
+
+    def get_specname(self):
+        return self.specname
+
+    def is_remote(self):
+        return is_remote_host(self.host)
+
     def __str__(self):
-        return '<connection to Spec, host=%s, port=%s>' % (self.host, self.port or self.scanname)
+        return '<connection to Spec, host=%s, port=%s>' % (self.host, self.port or self.specname)
 
     def set_socket(self, s):
-      self.valid_socket = True
-      asyncore.dispatcher.set_socket(self, s)
+        self.valid_socket = True
+        asyncore.dispatcher.set_socket(self, s)
 
-    def makeConnection(self):
+    # update thread handling
+    def is_running(self):
+        if self.updater is None:
+            return False
+        return self.updater.is_running()
+
+    def run(self):
+        if self.is_running():
+           return
+
+        # start a thread for automatic update
+        self.updater = spec_updater.spec_updater(method=spec_updater.THREAD,
+                update_time=UPDATER_TIME,
+                update_func=self._update)
+
+        self.updater.start()
+
+    def _update(self,timeout=0.01):
+        try:
+            self.check_connection()
+            if asyncore.socket_map:
+                asyncore.loop(timeout=0.01, count=1)
+
+            if self.thread_update:
+                self.update_events()
+
+        except Exception as e:
+            import traceback
+            log.log(2, traceback.format_exc())
+
+    def close_connection(self):
+        if self.updater is not None:
+            self.updater.stop()
+        self.close()
+
+    # END update thread handling
+
+    def check_connection(self):
         """Establish a connection to Spec
 
         If the connection is already established, do nothing.
@@ -179,35 +222,42 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         If we are in port scanning mode, try to connect using
         a port defined in the range from MIN_PORT to MAX_PORT
         """
-        if not self.connected:
-            if self.scanport:
-              if self.port is None or self.port > MAX_PORT:
-                self.port = MIN_PORT
-              else:
-                self.port += 1
-            while not self.scanport or self.port < MAX_PORT:
-              s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-              s.settimeout(0.2)
-              try:
-                 if s.connect_ex( (self.host, self.port) ) == 0:
-                   self.set_socket(s)
-                   self.handle_connect()
-                   break
-              except socket.error:
-                 pass #exception could be 'host not found' for example, we ignore it
-              if self.scanport:
-                self.port += 1 
-              else:
-                break
+        if not self.socket_connected:
+            if self.scanports:
+                if self.port is None or self.port > MAX_PORT:
+                    self.port = MIN_PORT
+                else:
+                    self.port += 1
+
+            while not self.scanports or self.port < MAX_PORT:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(0.2)
+                try:
+                    if s.connect_ex( (self.host, self.port) ) == 0:
+                        self.set_socket(s)
+                        self.handle_connect()
+                        break
+                except socket.error:
+                    pass # exception could be 'host not found' for example, we ignore it
+
+                if self.scanports:
+                    self.port += 1 
+                else:
+                    log.log(2, "connected by port number %s succeeded. " % self.port)
+                    break
+        elif self.state == WAITINGFORHELLO:
+            if (time.time() - self.waiting_hello_started) > WAIT_HELLO_TIMEOUT:
+                log.log(2, "socket connected but no response to hello message.forget this socket")
+                self.handle_close()
 
     def checkServer(self):
-        if self.scanport:
+        if self.scanports:
             if self.port is None or self.port > MAX_PORT:
                 self.port = MIN_PORT
             else:
                 self.port += 1
 
-        while not self.scanport or self.port < MAX_PORT:
+        while not self.scanports or self.port < MAX_PORT:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.2)
             try:
@@ -216,7 +266,7 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
             except socket.error:
                 pass #exception could be 'host not found' for example, we ignore it
 
-            if self.scanport:
+            if self.scanports:
                 self.port += 1 
             else:
                 break
@@ -307,58 +357,61 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
 
         return self.registeredChannels[chanName]
 
-
     def error(self, error):
         """Emit the 'error' signal when the remote Spec version signals an error."""
         log.error('Error from Spec: %s', error)
-
         SpecEventsDispatcher.emit(self, 'error', (error, ))
-
 
     def simulationStatusChanged(self, simulationMode):
         self.simulationMode = simulationMode
-
 
     def isSpecConnected(self):
         """Return True if the remote Spec version is connected."""
         return self.state == CONNECTED
 
-
-    def specConnected(self):
+    def spec_connected(self):
         """Emit the 'connected' signal when the remote Spec version is connected."""
         old_state = self.state
         self.state = CONNECTED
         if old_state != CONNECTED:
-            log.log(1,'Connected to %s:%s' % (self.host, (self.scanport and self.scanname) or self.port))
+            log.log(1,'Connected to %s:%s' % (self.host, self.specname or self.port))
             SpecEventsDispatcher.emit(self, 'connected', ())
 
-    def specDisconnected(self):
+    def spec_disconnected(self):
         """Emit the 'disconnected' signal when the remote Spec version is disconnected."""
-        SpecEventsDispatcher.dispatch()
-
+        # SpecEventsDispatcher.dispatch()
         old_state = self.state
         self.state = DISCONNECTED
         if old_state == CONNECTED:
-            log.info('Disconnected from %s:%s', self.host, (self.scanport and self.scanname) or self.port)
-
+            log.log(1,'disconnected from %s:%s' % (self.host, self.specname or self.port))
             SpecEventsDispatcher.emit(self, 'disconnected', ())
+
+    def connect_event(self, signal, cb):
+        SpecEventsDispatcher.connect(self, signal, cb)
+
+    def update_events(self):
+        SpecEventsDispatcher.dispatch()
 
     def handle_close(self):
         """Handle 'close' event on socket."""
-        self.connected = False
+
+        log.log(2, "connection to spec:%s closed")
+
+        self.socket_connected = False
         self.serverVersion = None
+
         if self.socket:
             self.close()
+
         self.valid_socket = False
+
         self.registeredChannels = {}
         self.aliasedChannels = {}
-        self.specDisconnected()
-
+        self.spec_disconnected()
 
     def disconnect(self):
         """Disconnect from the remote Spec version."""
         self.handle_close()
-
 
     def handle_error(self):
         """Handle an uncaught error."""
@@ -401,7 +454,6 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
 
             offset += consumedBytes
 
-
             if self.message.isComplete():
                 try:
                     # dispatch incoming message
@@ -430,11 +482,10 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
                     elif self.message.cmd == SpecMessage.HELLO_REPLY:
                         if self.checkourversion(self.message.name):
                             self.serverVersion = self.message.vers #header version
-                            #self.state = CONNECTED
-                            self.specConnected()
+                            self.spec_connected()
                         else:
                             self.serverVersion = None
-                            self.connected = False
+                            self.socket_connected = False
                             self.close()
                             self.state = DISCONNECTED
                 except:
@@ -453,13 +504,15 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         If we are in port scanning mode, check if the name from
         Spec corresponds to our required Spec version.
         """
-        if self.scanport:
-            if name == self.scanname:
+        if self.scanports:
+            if name == self.specname:
                 return True
             else:
-                #connected version does not match
                 return False
         else:
+            # if connected by port just be happy
+            log.log(2, "connected by port. name received from app is: %s" % name)
+            self.specname = name
             return True
 
 
@@ -472,17 +525,16 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         ret = self.readable() and (len(self.sendq) > 0 or sum(map(len, self.outputStrings)) > 0)
         return ret
 
-
     def handle_connect(self):
         """Handle 'connect' event on socket
 
         Send a HELLO message.
         """
-        self.connected = True
-
+        self.socket_connected = True
         self.state = WAITINGFORHELLO
+        self.waiting_hello_time = time.time()
+        log.log(2, "sending hello message")
         self.send_msg_hello()
-
 
     def handle_write(self):
         """Handle 'write' events on socket
@@ -640,11 +692,10 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         else:
             raise SpecClientNotConnectedError
 
-
     def send_msg_hello(self):
         """Send a hello message."""
+        #log.log(2, "sending hello message")
         self.__send_msg_no_reply(SpecMessage.msg_hello())
-
 
     def __send_msg_with_reply(self, reply, message, replyReceiverObject = None):
         """Send a message to the remote Spec, and return the reply id.
@@ -678,16 +729,8 @@ class SpecConnectionDispatcher(asyncore.dispatcher):
         self.sendq.insert(0, message)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == '__main__':
+    import sys
+    log.start()
+    conn = SpecConnection(sys.argv[1])
+    conn.run()

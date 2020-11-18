@@ -5,7 +5,7 @@ import weakref
 
 import time
 import inspect
-import platform
+import sys
 
 try:
    import queue
@@ -24,9 +24,7 @@ class SpecClientDispatcherError(Exception):
         self.args = args
 
 def is_python3():
-    return platform.python_version_tuple()[0] == '3'
-def is_python2():
-    return platform.python_version_tuple()[0] == '2'
+    return sys.version_info[0] == 3
 
 def min_args(slot):
     if is_python3():
@@ -38,14 +36,12 @@ def min_args(slot):
                 if param.default == param.empty:
                    npars += 1
         return npars
-    elif is_python2():
+    else:  # python2
         argspec = inspect.getargspec(slot)
         nargs = len(argspec.args)
         if argspec.defaults:
             nargs -= len(argspec.defaults)
         return nargs
-    else:  # python2
-        print("Unknown python version")
 
 def robustApply(slot, arguments = ()):
     """Call slot with appropriate number of arguments"""
@@ -264,14 +260,12 @@ def dispatch(max_time_in_s=1):
             elif (time.time()-t0) >= max_time_in_s:
               break
 
-
 def _removeSender(senderId):
     try:
         del connections[senderId]
         del senders[senderId]
     except KeyError:
          pass
-
 
 def _removeReceiver(weakReceiver):
     """Remove receiver from connections"""
