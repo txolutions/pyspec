@@ -24,7 +24,6 @@ class SpecChannel:
     Signals:
     valueChanged(channelValue, channelName) -- emitted when the channel gets updated
     """
-    #channel_aliases = {}
 
     def __init__(self, connection, channelName, registrationFlag = DOREG):
         """Constructor
@@ -67,7 +66,6 @@ class SpecChannel:
         if connection.isSpecConnected():
             self.connected()
 
-
     def connected(self):
         """Do registration when Spec gets connected
 
@@ -83,12 +81,10 @@ class SpecChannel:
         if self.registrationFlag == DOREG:
             self.register()
 
-
     def disconnected(self):
         """Reset channel object when Spec gets disconnected."""
         self.value = None
         self.isdisconnected = True
-
 
     def unregister(self):
         """Unregister channel."""
@@ -98,7 +94,6 @@ class SpecChannel:
             connection.send_msg_unregister(self.spec_chan_name)
             self.registered = False
             self.value = None
-
 
     def register(self):
         """Register channel
@@ -114,7 +109,6 @@ class SpecChannel:
         if connection is not None:
             connection.send_msg_register(self.spec_chan_name)
             self.registered = True
-
 
     def update(self, channelValue, deleted = False,force=False):
         """Update channel's value and emit the 'valueChanged' signal."""
@@ -207,7 +201,6 @@ class SpecChannel:
                 self.update(w.value)
 
         return self.value
-
 
     def write(self, value):
         """Write a channel value."""

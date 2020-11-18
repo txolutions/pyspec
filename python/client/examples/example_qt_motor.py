@@ -3,9 +3,11 @@
 #  "pyspec" Release %R%
 #
 
-from pyspec.client.SpecMotor import SpecMotorA
+from pyspec.client.SpecMotor import SpecMotorA, SpecMotor
 from pyspec.client.SpecConnection import SpecConnection
 from pyspec.graphics.QVariant import *
+
+from pyspec.css_logger import log
 
 class MotorWidget(QWidget):
 
@@ -31,10 +33,8 @@ class MotorWidget(QWidget):
                "motorStateChanged": self.state_change}
 
         # create asyncronous motor
-        self.conn = SpecConnection(self.specname)
-        self.motor = SpecMotorA(self.motormne, self.conn, callbacks=cb)
-
-        #self.motor = SpecMotorA(self.motormne, self.specname, callbacks=cb)
+        #self.conn = SpecConnection(self.specname)
+        self.motor = SpecMotorA(self.motormne, self.specname, callbacks=cb)
 
     def do_move(self):
         target = self.position_ledit.text()
@@ -55,12 +55,12 @@ class MotorWidget(QWidget):
 
     def update(self):
         self.motor.update()
-        #self.conn.update()
 
 def main():
+    log.start()
     app = QApplication([])
     win = QMainWindow()
-    motor = MotorWidget("chi", "localhost:fourc")
+    motor = MotorWidget("chi", "fourc")
 
     win.setCentralWidget(motor)
     win.show()

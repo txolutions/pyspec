@@ -21,18 +21,19 @@ from pyspec.css_logger import log
 from pyspec.utils import is_python2
 
 from SpecConnection import SpecClientNotConnectedError
+from SpecConnection import SpecConnection
 from SpecReply import SpecReply
-from SpecConnectionsManager import SpecConnectionsManager
-import SpecEventsDispatcher as SpecEventsDispatcher
 from SpecWaitObject import waitReply, waitConnection
+import SpecEventsDispatcher as SpecEventsDispatcher
+
 from SpecClientError import SpecClientTimeoutError
 
 class BaseSpecCommand:
     """Base class for SpecCommand objects"""
     def __init__(self, command = None, connection = None, callbacks = None):
         self.command = None
-        self.connection = None
-        self.specVersion = None
+        self._conn = None
+        self.specapp = None
         self.isConnected = self.isSpecConnected #alias
 
         if isinstance(connection, str) or (is_python2() and isinstance(connection, unicode)):
@@ -41,24 +42,23 @@ class BaseSpecCommand:
             #
             self.connectToSpec(str(connection))
         else:
-            self.connection = connection
+            self._conn = connection
 
         if command is not None:
             self.setCommand(command)
 
-
-    def connectToSpec(self, specVersion):
-        pass
-
+    def connectToSpec(self, specapp):
+        self._conn = SpecConnection(specapp)
+        self.specapp = specapp
+        waitConnection(self._conn, self.__timeout)
 
     def isSpecConnected(self):
-        return self.connection is not None and self.connection.isSpecConnected()
-
+        return self._conn is not None and self._conn.isSpecConnected()
 
     def isSpecReady(self):
         if self.isSpecConnected():
             try:
-                status_channel = self.connection.getChannel("status/ready")
+                status_channel = self._conn.getChannel("status/ready")
                 status = status_channel.read()
             except:
                 pass
@@ -67,23 +67,20 @@ class BaseSpecCommand:
 
         return False
 
-
     def setCommand(self, command):
         self.command = command
 
-
     def __repr__(self):
         return '<SpecCommand object, command=%s>' % self.command or ''
-
 
     def __call__(self, *args, **kwargs):
         if self.command is None:
             return
 
-        if self.connection is None or not self.connection.isSpecConnected():
+        if self._conn is None or not self._conn.isSpecConnected():
             return
 
-        if self.connection.serverVersion < 3:
+        if self._conn.serverVersion < 3:
             func = False
 
             if 'function' in kwargs:
@@ -106,10 +103,8 @@ class BaseSpecCommand:
 
         return self.executeCommand(command)
 
-
     def executeCommand(self, command):
         pass
-
 
 
 class SpecCommand(BaseSpecCommand):
@@ -118,16 +113,8 @@ class SpecCommand(BaseSpecCommand):
         self.__timeout = timeout
         BaseSpecCommand.__init__(self, command, connection)
 
-
-    def connectToSpec(self, specVersion):
-        self.connection = SpecConnectionsManager().getConnection(specVersion)
-        self.specVersion = specVersion
-
-        waitConnection(self.connection, self.__timeout)
-
-
     def executeCommand(self, command):
-        if self.connection.serverVersion < 3:
+        if self._conn.serverVersion < 3:
             connectionCommand = 'send_msg_cmd_with_return'
         else:
             if isinstance(command,str):
@@ -135,9 +122,7 @@ class SpecCommand(BaseSpecCommand):
             else:
                 connectionCommand = 'send_msg_func_with_return'
 
-        return waitReply(self.connection, connectionCommand, (command, ), self.__timeout)
-
-
+        return waitReply(self._conn, connectionCommand, (command, ), self.__timeout)
 
 class SpecCommandA(BaseSpecCommand):
     """SpecCommandA is the asynchronous version of SpecCommand.
@@ -157,23 +142,21 @@ class SpecCommandA(BaseSpecCommand):
 
         BaseSpecCommand.__init__(self, *args, **kwargs)
 
+    def connectToSpec(self, specapp, timeout=200):
+        if self._conn is not None:
+            SpecEventsDispatcher.disconnect(self._conn, 'connected', self._connected)
+            SpecEventsDispatcher.disconnect(self._conn, 'disconnected', self._disconnected)
 
-    def connectToSpec(self, specVersion, timeout=200):
-        if self.connection is not None:
-            SpecEventsDispatcher.disconnect(self.connection, 'connected', self._connected)
-            SpecEventsDispatcher.disconnect(self.connection, 'disconnected', self._disconnected)
+        super(SpecCommandA, self).connectToSpec(specapp)
 
-        self.connection = SpecConnectionsManager().getConnection(specVersion)
-        self.specVersion = specVersion
+        SpecEventsDispatcher.connect(self._conn, 'connected', self._connected)
+        SpecEventsDispatcher.connect(self._conn, 'disconnected', self._disconnected)
 
-        SpecEventsDispatcher.connect(self.connection, 'connected', self._connected)
-        SpecEventsDispatcher.connect(self.connection, 'disconnected', self._disconnected)
-
-        if self.connection.isSpecConnected():
+        if self._conn.isSpecConnected():
             self._connected()
         else:
             try:
-              waitConnection(self.connection, timeout)
+              waitConnection(self._conn, timeout)
             except SpecClientTimeoutError:
               pass
             SpecEventsDispatcher.dispatch()
@@ -182,9 +165,9 @@ class SpecCommandA(BaseSpecCommand):
         pass
 
     def _connected(self):
-        self.connection.registerChannel("status/ready", self._statusChanged)
+        self._conn.registerChannel("status/ready", self._statusChanged)
  
-        self.connection.send_msg_hello()        
+        self._conn.send_msg_hello()        
 
         try:
             cb_ref = self.__callbacks.get("connected")
@@ -209,7 +192,6 @@ class SpecCommandA(BaseSpecCommand):
     def disconnected(self):
         pass
 
- 
     def _statusChanged(self, ready):
         try:
             cb_ref = self.__callbacks.get("statusChanged")
@@ -220,22 +202,22 @@ class SpecCommandA(BaseSpecCommand):
         finally:
             self.statusChanged(ready)
     
-
     def statusChanged(self, ready):
         pass
-
 
     def executeCommand(self, command):
         self.beginWait()
 
-        if self.connection.serverVersion < 3:
-            id = self.connection.send_msg_cmd_with_return(command)
+        if self._conn.serverVersion < 3:
+            id = self._conn.send_msg_cmd_with_return(command)
         else:
             if isinstance(command,str):
-                id = self.connection.send_msg_cmd_with_return(command)
+                id = self._conn.send_msg_cmd_with_return(command)
             else:
-                id = self.connection.send_msg_func_with_return(command)
+                id = self._conn.send_msg_func_with_return(command)
 
+    def wait_reply(self):
+        pass
 
     def __call__(self, *args, **kwargs):
         log.log(2,"executing spec command")
@@ -244,43 +226,28 @@ class SpecCommandA(BaseSpecCommand):
 
         return BaseSpecCommand.__call__(self, *args, **kwargs)
 
-
     def replyArrived(self, reply):
         if reply.error:
             if callable(self.__error_callback):
                 try:
                     self.__error_callback(reply.error)
                 except:
-                    log.exception("Error while calling error callback (command=%s,spec version=%s)", self.command, self.specVersion)
+                    log.exception("Error while calling error callback (command=%s,spec version=%s)", self.command, self.specapp)
                 self.__error_callback = None
         else:
             if callable(self.__callback):
                 try:
                     self.__callback(reply.data)
                 except:
-                    log.exception("Error while calling reply callback (command=%s,spec version=%s)", self.command, self.specVersion)
+                    log.exception("Error while calling reply callback (command=%s,spec version=%s)", self.command, self.specapp)
                 self.__callback = None
-
 
     def beginWait(self):
         pass
 
-
     def abort(self):
-        if self.connection is None or not self.connection.isSpecConnected():
+        if self._conn is None or not self._conn.isSpecConnected():
             return
 
-        self.connection.abort()
-
-
-
-
-
-
-
-
-
-
-
-
+        self._conn.abort()
 

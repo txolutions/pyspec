@@ -161,6 +161,8 @@ class _SpecConnection(asyncore.dispatcher):
         self.registerChannel('error', self.error, dispatchMode = SpecEventsDispatcher.FIREEVENT)
         self.registerChannel('status/simulate', self.simulationStatusChanged)
 
+        self.run()
+
     def get_host(self):
         return self.host
 
@@ -171,7 +173,7 @@ class _SpecConnection(asyncore.dispatcher):
         return is_remote_host(self.host)
 
     def __str__(self):
-        return '<connection to Spec, host=%s, port=%s>' % (self.host, self.port or self.specname)
+        return '<spec connection: %s (@%s:%s)>' % (self.specname, self.host, self.port)
 
     def set_socket(self, s):
         self.valid_socket = True
@@ -392,6 +394,8 @@ class _SpecConnection(asyncore.dispatcher):
     def update_events(self):
         SpecEventsDispatcher.dispatch()
 
+    update = update_events
+
     def handle_close(self):
         """Handle 'close' event on socket."""
 
@@ -532,7 +536,7 @@ class _SpecConnection(asyncore.dispatcher):
         """
         self.socket_connected = True
         self.state = WAITINGFORHELLO
-        self.waiting_hello_time = time.time()
+        self.waiting_hello_started = time.time()
         log.log(2, "sending hello message")
         self.send_msg_hello()
 
