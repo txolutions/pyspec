@@ -80,7 +80,7 @@ class BaseSpecCommand:
         if self._conn is None or not self._conn.isSpecConnected():
             return
 
-        if self._conn.serverVersion < 3:
+        if self._conn.server_version < 3:
             func = False
 
             if 'function' in kwargs:
@@ -114,7 +114,7 @@ class SpecCommand(BaseSpecCommand):
         BaseSpecCommand.__init__(self, command, connection)
 
     def executeCommand(self, command):
-        if self._conn.serverVersion < 3:
+        if self._conn.server_version < 3:
             connectionCommand = 'send_msg_cmd_with_return'
         else:
             if isinstance(command,str):
@@ -208,7 +208,7 @@ class SpecCommandA(BaseSpecCommand):
     def executeCommand(self, command):
         self.beginWait()
 
-        if self._conn.serverVersion < 3:
+        if self._conn.server_version < 3:
             id = self._conn.send_msg_cmd_with_return(command)
         else:
             if isinstance(command,str):

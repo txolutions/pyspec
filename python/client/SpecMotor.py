@@ -11,9 +11,6 @@ SpecMotor -- class representing a motor in Spec
 SpecMotorA -- class representing a motor in Spec, to be used with a GUI
 """
 
-__author__ = 'Matias Guijarro'
-__version__ = '1.0'
-
 import math
 
 from pyspec.css_logger import log
@@ -21,6 +18,7 @@ from pyspec.css_logger import log
 from SpecConnection import SpecConnection
 from SpecCommand import SpecCommandA
 from SpecWaitObject import SpecWaitObject
+
 from SpecEventsDispatcher import UPDATEVALUE, FIREEVENT, callableObjectRef
 
 (NOTINITIALIZED, UNUSABLE, READY, MOVESTARTED, MOVING, ONLIMIT) = (0,1,2,3,4,5)
@@ -210,19 +208,30 @@ class SpecMotorA(SpecMotor):
             if callable(callbacks.get(cb_name)):
                 self.__callbacks[cb_name] = callableObjectRef(callbacks[cb_name])
 
+    def register(self, channame, cb, mode=UPDATEVALUE):
+        self._conn.registerChannel(self.chan_prefix % channame,  cb, dispatchMode=mode)
+
+    def connected(self):
+        """Callback triggered by a 'connected' event from Spec
+
+        To be extended by derivated classes.
+        """
+        pass
+
     def spec_connected(self):
         """Private callback triggered by a 'connected' event from Spec."""
         #
         # register channels
         #
-        self.register('low_limit', self._motorLimitsChanged)
-        self.register('high_limit', self._motorLimitsChanged)
         self.register('position', self.__motorPositionChanged, mode = FIREEVENT)
-        self.register( 'move_done', self.motorMoveDone, mode = FIREEVENT)
-        self.register('high_lim_hit', self.__motorLimitHit)
-        self.register('low_lim_hit', self.__motorLimitHit)
+        self.register('move_done', self.motorMoveDone, mode = FIREEVENT)
         self.register('sync_check', self.__syncQuestion)
         self.register('unusable', self.__motorUnusable)
+        self.register('high_lim_hit', self.__motorLimitHit)
+        self.register('low_lim_hit', self.__motorLimitHit)
+
+        self.register('low_limit', self._motorLimitsChanged)
+        self.register('high_limit', self._motorLimitsChanged)
         self.register('offset', self.motorOffsetChanged)
         self.register('sign', self.signChanged)
 
@@ -236,11 +245,9 @@ class SpecMotorA(SpecMotor):
         finally:
             self.connected()
 
-    def register(self, channame, cb, mode=UPDATEVALUE):
-        self._conn.registerChannel(self.chan_prefix % channame,  cb, dispatchMode=mode)
 
-    def connected(self):
-        """Callback triggered by a 'connected' event from Spec
+    def disconnected(self):
+        """Callback triggered by a 'disconnected' event from Spec
 
         To be extended by derivated classes.
         """
@@ -261,14 +268,6 @@ class SpecMotorA(SpecMotor):
         finally:
             self.disconnected()
 
-
-    def disconnected(self):
-        """Callback triggered by a 'disconnected' event from Spec
-
-        To be extended by derivated classes.
-        """
-        pass
-
     def signChanged(self, sign):
         self._motorLimitsChanged()
 
@@ -280,7 +279,7 @@ class SpecMotorA(SpecMotor):
           if self.__callbacks.get("motorLimitsChanged"):
             cb = self.__callbacks["motorLimitsChanged"]()
             if cb is not None:
-              cb()
+               cb()
         finally:
            self.motorLimitsChanged()
 
@@ -300,7 +299,6 @@ class SpecMotorA(SpecMotor):
         Arguments:
         channelValue -- value of the channel
         """
-
         if channelValue:
             self.__changeMotorState(MOVING)
         elif self.state in (MOVING, MOVESTARTED,NOTINITIALIZED):
@@ -325,19 +323,19 @@ class SpecMotorA(SpecMotor):
 
     def __motorPositionChanged(self, absolutePosition):
         if self.__old_position is None:
-           self.__old_position = absolutePosition
+            self.__old_position = absolutePosition
         else:
-           if math.fabs(absolutePosition - self.__old_position) > 1E-6:
-              self.__old_position = absolutePosition
-           else:
-              return
+            if math.fabs(absolutePosition - self.__old_position) > 1E-6:
+                self.__old_position = absolutePosition
+            else:
+                return
         try:
-          if self.__callbacks.get("motorPositionChanged"):
-            cb = self.__callbacks["motorPositionChanged"]()
-            if cb is not None:
-              cb(absolutePosition)
+            if self.__callbacks.get("motorPositionChanged"):
+                cb = self.__callbacks["motorPositionChanged"]()
+                if cb is not None:
+                   cb(absolutePosition)
         finally:
-          self.motorPositionChanged(absolutePosition)
+            self.motorPositionChanged(absolutePosition)
 
     def motorPositionChanged(self, absolutePosition):
         """Callback triggered by a position channel update
@@ -391,7 +389,6 @@ class SpecMotorA(SpecMotor):
             self.__changeMotorState(UNUSABLE)
         else:
             self.__changeMotorState(READY)
-
 
     def __changeMotorState(self, state):
         """Private method for changing the SpecMotor object's internal state

@@ -15,9 +15,6 @@ waitReply -- wait for a reply
 waitConnection -- wait for a connection
 """
 
-__author__ = 'Matias Guijarro'
-__version__ = '1.0'
-
 import weakref
 import time
 import sys
@@ -34,14 +31,13 @@ def waitFunc(timeout):
   timeout -- waiting time in milliseconds
   """
   try:
-    from pyspec.client.SpecConnectionsManager import SpecConnectionsManager
-    P = getattr(SpecConnectionsManager(), "poll")
+      from pyspec.client.SpecConnectionsManager import SpecConnectionsManager
+      P = getattr(SpecConnectionsManager(), "poll")
   except AttributeError:
-    time.sleep(timeout/1000.0)
-    SpecEventsDispatcher.dispatch()
+      time.sleep(timeout/1000.0)
+      SpecEventsDispatcher.dispatch()
   else:
-    P(timeout/1000.0)
-
+      P(timeout/1000.0)
 
 class SpecWaitObject:
     """Helper class for waiting specific events from Spec"""
@@ -62,16 +58,13 @@ class SpecWaitObject:
         if connection.isSpecConnected():
             self.connected()
 
-
     def connected(self):
         """Callback triggered by a 'connected' event."""
         self.isdisconnected = False
 
-
     def disconnected(self):
         """Callback triggered by a 'disconnected' event."""
         self.isdisconnected = True
-
 
     def waitReply(self, command, argsTuple, timeout = None):
         """Wait for a reply from Spec
@@ -93,7 +86,6 @@ class SpecWaitObject:
                     func(*argsTuple)
 
                 self.wait(timeout = timeout)
-
 
     def waitChannelUpdate(self, chanName, waitValue = None, timeout = None):
         """Wait for a channel update
@@ -120,7 +112,6 @@ class SpecWaitObject:
             if self.channelWasUnregistered:
                 connection.unregisterChannel(chanName) #channel.unregister()
 
-
     def waitConnection(self, timeout = None):
         """Wait for the connection to Spec being established
 
@@ -144,7 +135,6 @@ class SpecWaitObject:
 
                 if timeout is not None and t >= timeout:
                     raise SpecClientTimeoutError
-
 
     def wait(self, waitValue = None, timeout = None):
         """Block until the object's internal value gets updated
@@ -174,14 +164,12 @@ class SpecWaitObject:
                 if timeout is not None and t >= timeout:
                     raise SpecClientTimeoutError
 
-
     def replyArrived(self, reply):
         """Callback triggered by a reply from Spec."""
-        self.value = reply.getValue()
+        self.value = reply.get_data()
 
         if reply.error:
             raise SpecClientError('Server request did not complete: %s' % self.value, reply.error_code)
-
 
     def channelUpdated(self, channelValue):
         """Callback triggered by a channel update
@@ -197,7 +185,6 @@ class SpecWaitObject:
         else:
             self.value = channelValue
 
-
 def waitConnection(connection, timeout = None):
     """Wait for a connection to Spec to be established
 
@@ -206,13 +193,11 @@ def waitConnection(connection, timeout = None):
     timeout -- optional timeout (defaults to None)
     """
     if isinstance(connection, str) or (is_python2() and isinstance(connection, unicode)):
-      from pyspec.client.SpecConnectionsManager import SpecConnectionsManager
-      connection = SpecConnectionsManager().getConnection(str(connection))
+        from SpecConnection import SpecConnection 
+        connection = SpecConnection( str(connection) )
 
     w = SpecWaitObject(connection)
-
     w.waitConnection(timeout = timeout)
-
 
 def waitChannelUpdate(chanName, connection, waitValue = None, timeout = None):
     """Wait for a channel to be updated
@@ -254,18 +239,4 @@ def waitReply(connection, command, argsTuple, timeout = None):
     w.waitReply(command, argsTuple, timeout=timeout)
 
     return w.value
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

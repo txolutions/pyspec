@@ -1,6 +1,7 @@
 
 import asyncore
 import threading
+import weakref
 import time
 
 try:
@@ -10,6 +11,8 @@ except:
     gevent_ok = False
 
 THREAD, GEVENT = 0,1
+
+from pyspec.css_logger import log
 
 class spec_updater(object):
     default_update_time = 10 # millisecs
@@ -34,9 +37,8 @@ class spec_updater(object):
             raise Exception("wrong method for spec_updater. " 
                             "only thread and gevent supported")
 
-        self.update_func = (update_func is None) and \
-                self._update or update_func
-
+        self.update_func = (update_func is not None) \
+                and update_func or self._update
         self.set_update_time(update_time)
 
     def set_update_time(self, update_time):
@@ -44,7 +46,7 @@ class spec_updater(object):
                               self.default_update_time or update_time
         self.update_time /= 1000.0 # in seconds
 
-    def _update (self):
+    def _update(self):
         asyncore.loop(timeout=1, count=1)
 
     def start(self):
@@ -54,14 +56,19 @@ class spec_updater(object):
     def stop(self,timeout=1):
         self.started = False
         s0 = time.time()
-        while self.thread.isAlive():
-            time.sleep(0.1)
-            if time.time() -s0 > timeout:
-                print("cannot stop thread. killing it")
-                self.kill()
+        try:
+            while self.thread.isAlive():
+                time.sleep(0.1)
+                if time.time() -s0 > timeout:
+                    print("cannot stop thread. killing it")
+                    self.kill()
+        except ImportError:
+            self.kill()
+            print("i am already done")
 
     def kill(self):
-        self.thread.kill()
+        self.started = False
+        #self.thread.kill()
 
     def is_running(self):
         if self.thread is not None and self.thread.isAlive():
@@ -70,12 +77,15 @@ class spec_updater(object):
 
     def start_thread(self):
         self.thread = threading.Thread(target=self._loop)
+        # daemon flag sets thread to stop on main thread control-C
+        self.thread.daemon = True
         self.thread.start() 
 
     def _loop(self):
         while True:
             try:
                 if not self.started:
+                    log.log(2, "stopping updater")
                     break
                 self.update_func()
                 time.sleep(self.update_time)
@@ -95,7 +105,4 @@ if __name__ == '__main__':
         try:
             time.sleep(0.2)
         except KeyboardInterrupt:
-            print("going out")
-            print(updater.thread.isAlive())
-            updater.stop()
             break

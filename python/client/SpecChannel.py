@@ -16,7 +16,7 @@ import weakref
 
 (DOREG, DONTREG, WAITREG) = (0, 1, 2)
 
-class SpecChannel:
+class SpecChannel(object):
     """SpecChannel class
 
     Represent a channel in Spec

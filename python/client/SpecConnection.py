@@ -27,7 +27,10 @@ from pyspec.css_logger import log
 from pyspec.utils import is_python3, is_remote_host
 
 from SpecEventsDispatcher import UPDATEVALUE, FIREEVENT
-from SpecClientError import SpecClientNotConnectedError
+
+from SpecClientError import SpecClientNotConnectedError, \
+        SpecClientVersionError, SpecClientProtocolError, \
+        SpecClientTimeoutError
 
 import SpecEventsDispatcher 
 
@@ -130,20 +133,24 @@ class _SpecConnection(asyncore.dispatcher):
         self.scanports = False
         self.specname = ''
 
-        self.receivedStrings = []
         self.message = None
-        self.serverVersion = None
-        self.aliasedChannels = {}
-        self.registeredChannels = {}
-        self.registeredReplies = {}
+
+        self.received_strings = []
+        self.output_strings = []
         self.sendq = []
-        self.outputStrings = []
-        self.simulationMode = False
+
+        self.server_version = None
+
+        self.aliasedChannels = {}
+        self.reg_channels = {}
+        self.reg_replies = {}
+
+        self.simulation_mode = False
 
         # some shortcuts
-        self.macro       = self.send_msg_cmd_with_return
+        self.macro = self.send_msg_cmd_with_return
         self.macro_noret = self.send_msg_cmd
-        self.abort         = self.send_msg_abort
+        self.abort = self.send_msg_abort
 
         self.host = host
         self.specname = specname
@@ -158,7 +165,7 @@ class _SpecConnection(asyncore.dispatcher):
         #
         # register 'service' channels
         #
-        self.registerChannel('error', self.error, dispatchMode = SpecEventsDispatcher.FIREEVENT)
+        self.registerChannel('error', self.error, dispatchMode = FIREEVENT)
         self.registerChannel('status/simulate', self.simulationStatusChanged)
 
         self.run()
@@ -214,7 +221,21 @@ class _SpecConnection(asyncore.dispatcher):
             self.updater.stop()
         self.close()
 
+    def __del__(self):
+        log.log(2, "deleting connection")
+        self.close_connection()
+
     # END update thread handling
+
+    def wait_connected(self, timeout=2):
+        if not self.updater.is_running():
+            self.updater.run()
+
+        start_waiting = time.time()
+        while self.state in (DISCONNECTED, WAITINGFORHELLO):
+            time.sleep(0.02)
+            if time.time() - start_waiting > timeout:
+                raise SpecClientTimeoutError
 
     def check_connection(self):
         """Establish a connection to Spec
@@ -252,30 +273,7 @@ class _SpecConnection(asyncore.dispatcher):
                 log.log(2, "socket connected but no response to hello message.forget this socket")
                 self.handle_close()
 
-    def checkServer(self):
-        if self.scanports:
-            if self.port is None or self.port > MAX_PORT:
-                self.port = MIN_PORT
-            else:
-                self.port += 1
-
-        while not self.scanports or self.port < MAX_PORT:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(0.2)
-            try:
-                if s.connect_ex( (self.host, self.port) ) == 0:
-                    return True 
-            except socket.error:
-                pass #exception could be 'host not found' for example, we ignore it
-
-            if self.scanports:
-                self.port += 1 
-            else:
-                break
-
-        return False
-
-    def registerChannel(self, chanName, receiverSlot, registrationFlag = SpecChannel.DOREG, dispatchMode = SpecEventsDispatcher.UPDATEVALUE):
+    def register(self, chan_name, receiver_slot, registrationFlag = SpecChannel.DOREG, dispatchMode = UPDATEVALUE):
         """Register a channel
 
         Tell the remote Spec we are interested in receiving channel update events.
@@ -285,8 +283,8 @@ class _SpecConnection(asyncore.dispatcher):
         slot.
 
         Arguments:
-        chanName -- a string representing the channel name, i.e. 'var/toto'
-        receiverSlot -- any callable object in Python
+        chan_name -- a string representing the channel name, i.e. 'var/toto'
+        receiver_slot -- any callable object in Python
 
         Keywords arguments:
         registrationFlag -- internal flag
@@ -298,52 +296,56 @@ class _SpecConnection(asyncore.dispatcher):
         if dispatchMode is None:
             return
 
-        chanName = str(chanName)
+        chan_name = str(chan_name)
 
         try:
-          if not chanName in self.registeredChannels:
-            channel = SpecChannel.SpecChannel(self, chanName, registrationFlag)
-            self.registeredChannels[chanName] = channel
-            if channel.spec_chan_name != chanName:
+          if not chan_name in self.reg_channels:
+            channel = SpecChannel.SpecChannel(self, chan_name, registrationFlag)
+            self.reg_channels[chan_name] = channel
+            if channel.spec_chan_name != chan_name:
                 channel.registered = True
-                def valueChanged(value, chanName=chanName):
-                    channel = self.registeredChannels[chanName]
+                def valueChanged(value, chan_name=chan_name):
+                    channel = self.reg_channels[chan_name]
                     channel.update(value) #,force=True)
-                self.aliasedChannels[chanName]=valueChanged
+                self.aliasedChannels[chan_name]=valueChanged
                 self.registerChannel(channel.spec_chan_name, valueChanged, registrationFlag, dispatchMode)
           else:
-            channel = self.registeredChannels[chanName]
+            channel = self.reg_channels[chan_name]
 
-          SpecEventsDispatcher.connect(channel, 'valueChanged', receiverSlot, dispatchMode)
+          SpecEventsDispatcher.connect(channel, 'valueChanged', receiver_slot, dispatchMode)
 
-          channelValue = self.registeredChannels[channel.spec_chan_name].value
+          channelValue = self.reg_channels[channel.spec_chan_name].value
           if channelValue is not None:
             # we received a value, so emit an update signal
             channel.update(channelValue,force=True)
         except Exception:
           traceback.print_exc()
 
-        listreg = [ky for ky in self.registeredChannels.keys() if not ky.startswith('motor') ]
+        listreg = [ky for ky in self.reg_channels.keys() if not ky.startswith('motor') ]
 
-    def unregisterChannel(self, chanName, receiverSlot=None):
+    registerChannel = register
+
+    def unregister(self, chan_name, receiver_slot=None):
         """Unregister a channel
 
         Arguments:
-        chanName -- a string representing the channel to unregister, i.e. 'var/toto'
+        chan_name -- a string representing the channel to unregister, i.e. 'var/toto'
         """
-        chanName = str(chanName)
+        chan_name = str(chan_name)
 
-        if chanName in self.registeredChannels:
-            channel = self.registeredChannels[chanName] 
-            if receiverSlot: 
-                SpecEventsDispatcher.disconnect(channel, 'valueChanged', receiverSlot)
+        if chan_name in self.reg_channels:
+            channel = self.reg_channels[chan_name] 
+            if receiver_slot: 
+                SpecEventsDispatcher.disconnect(channel, 'valueChanged', receiver_slot)
             else:
-                self.registeredChannels[chanName].unregister()
-                del self.registeredChannels[chanName]
+                self.reg_channels[chan_name].unregister()
+                del self.reg_channels[chan_name]
 
-        listreg = [ky for ky in self.registeredChannels.keys() if not ky.startswith('motor') ]
+        listreg = [ky for ky in self.reg_channels.keys() if not ky.startswith('motor') ]
 
-    def getChannel(self, chanName):
+    unregisterChannel = unregister
+
+    def get_channel(self, chan_name):
         """Return a channel object
 
         If the required channel is already registered, return it.
@@ -351,25 +353,33 @@ class _SpecConnection(asyncore.dispatcher):
         reference should be kept in the caller or the object will get dereferenced.
 
         Arguments:
-        chanName -- a string representing the channel name, i.e. 'var/toto'
+        chan_name -- a string representing the channel name, i.e. 'var/toto'
         """
-        if not chanName in self.registeredChannels:
+        if chan_name not in self.reg_channels:
             # return a newly created temporary SpecChannel object, without registering
-            return SpecChannel.SpecChannel(self, chanName, SpecChannel.DONTREG)
+            return SpecChannel.SpecChannel(self, chan_name, SpecChannel.DONTREG)
 
-        return self.registeredChannels[chanName]
+        return self.reg_channels[chan_name]
+
+    getChannel = get_channel
 
     def error(self, error):
         """Emit the 'error' signal when the remote Spec version signals an error."""
         log.error('Error from Spec: %s', error)
         SpecEventsDispatcher.emit(self, 'error', (error, ))
 
-    def simulationStatusChanged(self, simulationMode):
-        self.simulationMode = simulationMode
+    def simulationStatusChanged(self, sim_state):
+        self.simulation_mode = sim_state
+        SpecEventsDispatcher.emit(self, 'simulation', (sim_state,))
 
-    def isSpecConnected(self):
+    def is_simulation(self):
+        return self.simulation_mode
+
+    def is_connected(self):
         """Return True if the remote Spec version is connected."""
         return self.state == CONNECTED
+
+    isSpecConnected = is_connected
 
     def spec_connected(self):
         """Emit the 'connected' signal when the remote Spec version is connected."""
@@ -396,33 +406,32 @@ class _SpecConnection(asyncore.dispatcher):
 
     update = update_events
 
+    def disconnect(self):
+        """Disconnect from the remote Spec version."""
+        self.handle_close()
+
     def handle_close(self):
         """Handle 'close' event on socket."""
 
-        log.log(2, "connection to spec:%s closed")
+        log.log(2, "connection to spec:%s closed" % str(self.specname))
 
         self.socket_connected = False
-        self.serverVersion = None
+        self.server_version = None
 
         if self.socket:
             self.close()
 
         self.valid_socket = False
 
-        self.registeredChannels = {}
+        self.reg_channels = {}
         self.aliasedChannels = {}
         self.spec_disconnected()
-
-    def disconnect(self):
-        """Disconnect from the remote Spec version."""
-        self.handle_close()
 
     def handle_error(self):
         """Handle an uncaught error."""
         exception, error_string, tb = sys.exc_info()
         # let Python display exception like it wants!
         sys.excepthook(exception, error_string, tb)
-
 
     def handle_read(self):
         """Handle 'read' events on socket
@@ -431,17 +440,13 @@ class _SpecConnection(asyncore.dispatcher):
         """
         _received = self.recv(32768) 
 
-        #if is_python3():
-           #_received = _received.decode('utf-8')
-
-        self.receivedStrings.append(_received)
+        self.received_strings.append(_received)
 
         if is_python3():
-            s = b''.join(self.receivedStrings)
+            s = b''.join(self.received_strings)
             sbuffer = memoryview(s)
-            #sbuffer = bytes(sbuffer).decode('utf-8')
         else:
-            s = ''.join(self.receivedStrings)
+            s = ''.join(self.received_strings)
             sbuffer = buffer(s)
 
         consumedBytes = 0
@@ -449,7 +454,7 @@ class _SpecConnection(asyncore.dispatcher):
 
         while offset < len(sbuffer):
             if self.message is None:
-                self.message = SpecMessage.message(version = self.serverVersion)
+                self.message = SpecMessage.message(version = self.server_version)
 
             consumedBytes = self.message.readFromStream(sbuffer[offset:])
 
@@ -462,47 +467,60 @@ class _SpecConnection(asyncore.dispatcher):
                 try:
                     # dispatch incoming message
                     if self.message.cmd == SpecMessage.REPLY:
-                        replyID = self.message.sn
-
-                        if replyID > 0:
-                            try:
-                                reply = self.registeredReplies[replyID]
-                            except:
-                                log.exception("Unexpected error while receiving a message from server")
-                            else:
-                                del self.registeredReplies[replyID]
-
-                                reply.update(self.message.data, self.message.type == SpecMessage.ERROR, self.message.err)
-                                #SpecEventsDispatcher.emit(self, 'replyFromSpec', (replyID, reply, ))
+                        self.dispatch_reply_msg(self.message)
                     elif self.message.cmd == SpecMessage.EVENT:
-                        try:
-                            self.registeredChannels[self.message.name].update(self.message.data, self.message.flags == SpecMessage.DELETED)
-                        except KeyError:
-                            import traceback
-                            log.log(2, traceback.format_exc())
-                        except:
-                            import traceback
-                            log.log(2, traceback.format_exc())
+                        self.dispatch_event_msg(self.message)
                     elif self.message.cmd == SpecMessage.HELLO_REPLY:
-                        if self.checkourversion(self.message.name):
-                            self.serverVersion = self.message.vers #header version
-                            self.spec_connected()
-                        else:
-                            self.serverVersion = None
-                            self.socket_connected = False
-                            self.close()
-                            self.state = DISCONNECTED
-                except:
+                        self.dispatch_hello_reply_msg(self.message)
+                except Exception as e:
                     self.message = None
-                    self.receivedStrings = [ s[offset:] ]
-                    raise
+                    self.received_strings = [ s[offset:] ]
+                    raise SpecClientProtocolError(str(e))
                 else:
                     self.message = None
                                    
-        self.receivedStrings = [ s[offset:] ]
+        self.received_strings = [ s[offset:] ]
 
+    def dispatch_event_msg(self, msg):
 
-    def checkourversion(self, name):
+        chan_name = msg.name
+
+        chan = self.reg_channels.get(chan_name, None)
+
+        if chan is None:
+            raise SpecClientProtocolError("received event for unregistered channel %s" % chan_name)
+
+        chan.update(msg.data, msg.flags == SpecMessage.DELETED)
+
+    def dispatch_reply_msg(self, msg):
+        reply_id = msg.sn
+
+        if reply_id <= 0:
+            return 
+
+        reply = self.reg_replies.get(reply_id, None)
+
+        if reply is None:
+            raise SpecClientProtocolError("non expected reply received")
+
+        # deliver data to reply
+        del self.reg_replies[reply_id]
+
+        is_error = (msg.type == SpecMessage.ERROR)
+        errmsg = msg.err
+        reply.update(msg.data, is_error, errmsg)
+
+    def dispatch_hello_reply_msg(self, msg):
+        if self.check_appname(msg.name):
+            self.server_version = msg.vers #header version
+            self.spec_connected()
+        else:
+            self.server_version = None
+            self.socket_connected = False
+            self.close()
+            self.state = DISCONNECTED
+
+    def check_appname(self, name):
         """Check remote Spec version
 
         If we are in port scanning mode, check if the name from
@@ -515,19 +533,25 @@ class _SpecConnection(asyncore.dispatcher):
                 return False
         else:
             # if connected by port just be happy
-            log.log(2, "connected by port. name received from app is: %s" % name)
             self.specname = name
             return True
-
 
     def readable(self):
         return self.valid_socket
 
-
     def writable(self):
         """Return True if socket should be written."""
-        ret = self.readable() and (len(self.sendq) > 0 or sum(map(len, self.outputStrings)) > 0)
-        return ret
+        if not self.readable(): 
+            return False
+
+        buf_len = sum(map(len, self.output_strings)) 
+
+        if len(self.sendq) > 0 or buf_len > 0:
+            return True
+        return False
+
+        #ret = self.readable() and (len(self.sendq) > 0 or sum(map(len, self.output_strings)) > 0)
+        #return ret
 
     def handle_connect(self):
         """Handle 'connect' event on socket
@@ -537,7 +561,6 @@ class _SpecConnection(asyncore.dispatcher):
         self.socket_connected = True
         self.state = WAITINGFORHELLO
         self.waiting_hello_started = time.time()
-        log.log(2, "sending hello message")
         self.send_msg_hello()
 
     def handle_write(self):
@@ -546,16 +569,16 @@ class _SpecConnection(asyncore.dispatcher):
         Send all the messages from the queue.
         """
         while len(self.sendq) > 0:
-            self.outputStrings.append(self.sendq.pop().sendingString())
+            self.output_strings.append(self.sendq.pop().sendingString())
 
         if is_python3():
-            outputBuffer = b''.join(self.outputStrings)
+            out_buffer = b''.join(self.output_strings)
         else:
-            outputBuffer = ''.join(self.outputStrings)
+            out_buffer = ''.join(self.output_strings)
 
-        sent = self.send(outputBuffer)
+        sent = self.send(out_buffer)
 
-        self.outputStrings = [ outputBuffer[sent:] ]
+        self.output_strings = [ out_buffer[sent:] ]
 
 
     def send_msg_cmd_with_return(self, cmd):
@@ -564,16 +587,16 @@ class _SpecConnection(asyncore.dispatcher):
         Arguments:
         cmd -- command string, i.e. '1+1'
         """
-        if self.isSpecConnected():
-            try:
-                caller = sys._getframe(1).f_locals['self']
-            except KeyError:
-                caller = None
-
-            return self.__send_msg_with_reply(replyReceiverObject = caller, *SpecMessage.msg_cmd_with_return(cmd, version = self.serverVersion))
-        else:
+        if not self.is_connected():
             raise SpecClientNotConnectedError
 
+        try:
+            caller = sys._getframe(1).f_locals['self']
+        except KeyError:
+            caller = None
+
+        reply, msg = SpecMessage.msg_cmd_with_return(cmd, version = self.server_version)
+        return self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
 
     def send_msg_func_with_return(self, cmd):
         """Send a command message to the remote Spec server using the new 'func' feature, and return the reply id.
@@ -581,20 +604,19 @@ class _SpecConnection(asyncore.dispatcher):
         Arguments:
         cmd -- command string
         """
-        if self.serverVersion < 3:
-            log.error('Cannot execute command in Spec : feature is available since Spec server v3 only')
-        else:
-            if self.isSpecConnected():
-                try:
-                    caller = sys._getframe(1).f_locals['self']
-                except KeyError:
-                    caller = None
+        if self.server_version < 3:
+            raise SpecClientVersionError("need spec server minimum version 3")
+        
+        if not self.is_connected():
+            raise SpecClientNotConnectedError
 
-                message = SpecMessage.msg_func_with_return(cmd, version = self.serverVersion)
-                return self.__send_msg_with_reply(replyReceiverObject = caller, *message)
-            else:
-                raise SpecClientNotConnectedError
+        try:
+            caller = sys._getframe(1).f_locals['self']
+        except KeyError:
+            caller = None
 
+        reply, msg = SpecMessage.msg_func_with_return(cmd, version = self.server_version)
+        return self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
 
     def send_msg_cmd(self, cmd):
         """Send a command message to the remote Spec server.
@@ -602,11 +624,10 @@ class _SpecConnection(asyncore.dispatcher):
         Arguments:
         cmd -- command string, i.e. 'mv psvo 1.2'
         """
-        if self.isSpecConnected():
-            self.__send_msg_no_reply(SpecMessage.msg_cmd(cmd, version = self.serverVersion))
-        else:
+        if not self.is_connected():
             raise SpecClientNotConnectedError
 
+        self.__send_msg_no_reply(SpecMessage.msg_cmd(cmd, version = self.server_version))
 
     def send_msg_func(self, cmd):
         """Send a command message to the remote Spec server using the new 'func' feature
@@ -614,97 +635,94 @@ class _SpecConnection(asyncore.dispatcher):
         Arguments:
         cmd -- command string
         """
-        if self.serverVersion < 3:
-            log.error('Cannot execute command in Spec : feature is available since Spec server v3 only')
-        else:
-            if self.isSpecConnected():
-                self.__send_msg_no_reply(SpecMessage.msg_func(cmd, version = self.serverVersion))
-            else:
-                raise SpecClientNotConnectedError
+        if self.server_version < 3:
+            raise SpecClientVersionError("need spec server minimum version 3")
 
+        if not self.is_connected():
+            raise SpecClientNotConnectedError
 
-    def send_msg_chan_read(self, chanName):
+        msg = SpecMessage.msg_func(cmd, version = self.server_version)
+        self.__send_msg_no_reply( msg )
+
+    def send_msg_chan_read(self, chan_name):
         """Send a channel read message, and return the reply id.
 
         Arguments:
-        chanName -- a string representing the channel name, i.e. 'var/toto'
+        chan_name -- a string representing the channel name, i.e. 'var/toto'
         """
-        if self.isSpecConnected():
-            try:
-                caller = sys._getframe(1).f_locals['self']
-            except KeyError:
-                caller = None
-
-            return self.__send_msg_with_reply(replyReceiverObject = caller, *SpecMessage.msg_chan_read(chanName, version = self.serverVersion))
-        else:
+        if not self.is_connected():
             raise SpecClientNotConnectedError
 
+        try:
+            caller = sys._getframe(1).f_locals['self']
+        except KeyError:
+            caller = None
 
-    def send_msg_chan_send(self, chanName, value):
+        reply, msg = SpecMessage.msg_chan_read(chan_name, version = self.server_version)
+        return self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
+
+    def send_msg_chan_send(self, chan_name, value):
         """Send a channel write message.
 
         Arguments:
-        chanName -- a string representing the channel name, i.e. 'var/toto'
+        chan_name -- a string representing the channel name, i.e. 'var/toto'
         value -- channel value
         """
-        if self.isSpecConnected():
-            try:
-                self.__send_msg_no_reply(SpecMessage.msg_chan_send(chanName, value, version = self.serverVersion))
-            except:
-                import traceback
-                log.log(1, traceback.format_exc())
-        else:
+        if not self.is_connected():
             raise SpecClientNotConnectedError
 
+        msg = SpecMessage.msg_chan_send(chan_name, value, version = self.server_version)
+        self.__send_msg_no_reply( msg )
 
-    def send_msg_register(self, chanName):
+    def send_msg_register(self, chan_name):
         """Send a channel register message.
 
         Arguments:
-        chanName -- a string representing the channel name, i.e. 'var/toto'
+        chan_name -- a string representing the channel name, i.e. 'var/toto'
         """
-        if self.isSpecConnected():
-            self.__send_msg_no_reply(SpecMessage.msg_register(chanName, version = self.serverVersion))
-        else:
+        if not self.is_connected():
             raise SpecClientNotConnectedError
 
+        msg = SpecMessage.msg_register(chan_name, version = self.server_version)
+        self.__send_msg_no_reply( msg )
 
-    def send_msg_unregister(self, chanName):
+    def send_msg_unregister(self, chan_name):
         """Send a channel unregister message.
 
         Arguments:
-        chanName -- a string representing the channel name, i.e. 'var/toto'
+        chan_name -- a string representing the channel name, i.e. 'var/toto'
         """
-        if self.isSpecConnected():
-            self.__send_msg_no_reply(SpecMessage.msg_unregister(chanName, version = self.serverVersion))
-        else:
+        if not self.is_connected():
             raise SpecClientNotConnectedError
 
+        msg = SpecMessage.msg_unregister(chan_name, version = self.server_version)
+        self.__send_msg_no_reply( msg )
 
     def send_msg_close(self):
         """Send a close message."""
-        if self.isSpecConnected():
-            self.__send_msg_no_reply(SpecMessage.msg_close(version = self.serverVersion))
-        else:
+        if not self.is_connected():
             raise SpecClientNotConnectedError
 
+        msg = SpecMessage.msg_close(version = self.server_version)
+        self.__send_msg_no_reply( msg )
 
     def send_msg_abort(self):
         """Send an abort message."""
-        if self.isSpecConnected():
-            self.__send_msg_no_reply(SpecMessage.msg_abort(version = self.serverVersion))
-        else:
+        if not self.is_connected():
             raise SpecClientNotConnectedError
+
+        msg = SpecMessage.msg_abort(version = self.server_version)
+        self.__send_msg_no_reply( msg )
 
     def send_msg_hello(self):
         """Send a hello message."""
-        #log.log(2, "sending hello message")
-        self.__send_msg_no_reply(SpecMessage.msg_hello())
+        msg = SpecMessage.msg_hello()
+        self.__send_msg_no_reply(msg)
 
-    def __send_msg_with_reply(self, reply, message, replyReceiverObject = None):
+    def __send_msg_with_reply(self, reply, msg, receiver_obj = None):
         """Send a message to the remote Spec, and return the reply id.
 
-        The reply object is added to the registeredReplies dictionary,
+        The reply object is added to the reg_replies dictionary,
         with its reply id as the key. The reply id permits then to
         register for the reply using the 'registerReply' method.
 
@@ -712,29 +730,29 @@ class _SpecConnection(asyncore.dispatcher):
         reply -- SpecReply object which will receive the reply
         message -- SpecMessage object defining the message to send
         """
-        replyID = reply.id
-        self.registeredReplies[replyID] = reply
+        reply_id = reply.id
+        self.reg_replies[reply_id] = reply
 
-        if hasattr(replyReceiverObject, 'replyArrived'):
-            SpecEventsDispatcher.connect(reply, 'replyFromSpec', replyReceiverObject.replyArrived)
+        if hasattr(receiver_obj, 'replyArrived'):
+            SpecEventsDispatcher.connect(reply, 'replyFromSpec', receiver_obj.replyArrived)
 
-        self.sendq.insert(0, message)
+        self.sendq.insert(0, msg)
 
-        return replyID
+        return reply_id
 
-
-    def __send_msg_no_reply(self, message):
+    def __send_msg_no_reply(self, msg):
         """Send a message to the remote Spec.
 
         If a reply is sent depends only on the message, and not on the
         method to send the message. Using this method, any reply is
         lost.
         """
-        self.sendq.insert(0, message)
-
+        self.sendq.insert(0, msg)
 
 if __name__ == '__main__':
     import sys
     log.start()
-    conn = SpecConnection(sys.argv[1])
-    conn.run()
+
+    conn = ThreadedSpecConnection(sys.argv[1])
+    conn.wait_connected(timeout=10)
+    print("connection is now ready")

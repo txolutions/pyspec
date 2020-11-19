@@ -8,10 +8,16 @@ from data received from Spec, and for generating messages to be
 sent to Spec.
 
 It handles the different message versions (headers 2, 3 and 4).
-"""
 
-__author__ = 'Matias Guijarro'
-__version__ = '1.0'
+For message description check the protocol section of the spec
+"help server" page or 
+  http://certif.com/spec_help/server.html
+
+Message versions:
+   V2 - spec 5.04.03 - released July 20, 2003
+   V3 - spec 5.04.04 - released July 18, 2004
+   V4 - spec 5.04.05 and later - released Sept 30, 2004
+"""
 
 import struct
 import time
@@ -20,9 +26,8 @@ import types
 from pyspec.utils import is_python3, is_python2
 from pyspec.css_logger import log
 
-import SpecArray as SpecArray
-import SpecReply as SpecReply
-
+from SpecReply import SpecReply
+import SpecArray 
 
 DEBUG=4  # debug level for this module
 
@@ -41,7 +46,6 @@ NULL='\000'
 # flags
 DELETED = 0x0001
 
-
 def message(*args, **kwargs):
     """Return a new SpecMessage object
 
@@ -59,6 +63,7 @@ def message(*args, **kwargs):
     """
     version = kwargs.get('version', NATIVE_HEADER_VERSION)
     order = kwargs.get('order', '<')
+
     if len(order) == 0:
       order = "<"
 
@@ -69,7 +74,7 @@ def message(*args, **kwargs):
     elif version == 2:
         m = message2(*args)
     else:
-        m = anymessage(*args) #BE CAREFUL, only for reading message from stream
+        m = anymessage(*args) # only for reading message from stream
 
     m.packedHeaderDataFormat=order+m.packedHeaderDataFormat[1:]
 
@@ -80,23 +85,24 @@ def rawtodictonary(rawstring):
     """Transform a list as coming from a SPEC associative array
     to a dictonary - 2dim arrays are transformed top dict with dict
     entries. In SPEC the key contains \x1c"""
+
     if is_python3():
-        rawstring = bytes(rawstring).decode('utf-8')  # from memoryview
-        #raw = bytes(rawstring).decode('utf-8').split(NULL)[:-2]
-    #else:
+        rawstring = bytes(rawstring).decode('utf-8')  
+    
     raw = rawstring.split(NULL)[:-2]
 
     data = {}
     for i in range(0,len(raw) - 1,2):
+
         key,val = raw[i], raw[i+1]
         keyel = key.split("\x1c")
+
         if len(keyel) == 1:
             if key in data:
               data[key][None] = val
             else:
               data[key]=val
         else:
-            #if keyel[0] in data and type(data[keyel[0]])!=types.DictType:
             if keyel[0] in data and not isinstance(data[keyel[0]], dict):
               data[keyel[0]]={ None: data[keyel[0]] }
 
@@ -106,15 +112,16 @@ def rawtodictonary(rawstring):
                 data[keyel[0]] = {keyel[1] : val}
             except KeyError:
                 data[keyel[0]] = {keyel[1] : val}
-    return data
 
+    return data
 
 def dictionarytoraw(dict):
     """Transform a Python dictionary object to the string format
     expected by Spec"""
+
     data = ""
+
     for key, val in dict.items():
-        #if type(val) == types.DictType:
         if isinstance(val,dict):
             for kkey, vval in iter(val.items()):
                 if kkey is None:
@@ -125,7 +132,6 @@ def dictionarytoraw(dict):
             data += str(key) + NULL + str(val) + NULL
 
     return (len(data) > 0 and data) or NULL
-
 
 class SpecMessage:
     """Base class for messages."""
@@ -158,11 +164,9 @@ class SpecMessage:
         self.err = 0
         self.flags = 0
 
-
     def isComplete(self):
         """Return wether a message read from stream has been fully received or not."""
         return self.bytesToRead == 0
-
 
     def readFromStream(self, streamBuf):
         """Read buffer from stream and try to create a message from it
@@ -193,7 +197,6 @@ class SpecMessage:
             log.log(2, "error reading message from stream %s" % str(e))
             log.log(2,  traceback.format_exc())
   
-
         return consumedBytes
 
     def readHeader(self, rawstring):
@@ -207,7 +210,6 @@ class SpecMessage:
         """
         return (None, 0)
 
-
     def readData(self, rawstring, datatype):
         """Read the data part of the message coming from stream
 
@@ -219,11 +221,6 @@ class SpecMessage:
         the data read
         """
         data = rawstring[:-1] #remove last NULL byte
-        #if is_python3():
-        #    data = bytes(rawstring).decode('utf-8')[-1]
-        #else:
-        #    data = rawstring[:-1] #remove last NULL byte
-
 
         if datatype == ERROR:
             if is_python3():
@@ -262,13 +259,10 @@ class SpecMessage:
           - it is a hard job guessing ARRAY_* types, we ignore this case (user has to provide a suitable datatype)
           - we cannot make a difference between ERROR type and STRING type
         """
-        #if type(data) == types.StringType:
-        #if type(data) == str:
         if isinstance(data,str):
             return STRING
         elif isinstance(data,dict):
             return ASSOC
-        #elif isinstance(data,int) or isinstance(data,long) or isinstance(data,float):
         elif isinstance(data,int) or isinstance(data,float):
             return STRING
         elif is_python2() and isinstance(data,long):
@@ -276,7 +270,6 @@ class SpecMessage:
         elif isinstance(data, SpecArray.SpecArrayData):
             self.rows, self.cols = data.shape
             return data.type
-
 
     def sendingDataString(self, data, datatype):
         """Return the string representing the data part of the message."""
@@ -294,12 +287,10 @@ class SpecMessage:
 
         return rawstring
 
-
     def sendingString(self):
         """Create a string representing the message which can be send
         over the socket."""
         return ''
-
 
 class message2(SpecMessage):
     """Version 2 message class"""
@@ -315,7 +306,6 @@ class message2(SpecMessage):
         if len(args) > 0:
             self.init(*args, **kwargs)
 
-
     def init(self, ser, cmd, name, data, datatype = None, rows = 0, cols = 0):
         """ Create a message from the arguments"""
         self.vers = 2 #header version
@@ -329,7 +319,6 @@ class message2(SpecMessage):
         self.sec = int(self.time)
         self.usec = int((self.time-self.sec)*1E6)
         self.sn, self.cmd, self.name = ser, cmd, str(name)
-
 
     def readHeader(self, rawstring):
         self.magic, self.vers, self.size, self.sn, \
@@ -351,7 +340,6 @@ class message2(SpecMessage):
             self.name = name.replace(NULL, '') #remove padding null bytes
 
         return (datatype, datalen)
-
 
     def sendingString(self):
         if self.type is None:
@@ -372,14 +360,12 @@ class message2(SpecMessage):
                              self.rows, self.cols, datalen, name)
         return header + data
 
-
 class message3(SpecMessage):
     def __init__(self, *args, **kwargs):
         SpecMessage.__init__(self, '<IiiiIIiiIIIi80s')
 
         if len(args) > 0:
             self.init(*args, **kwargs)
-
 
     def init(self, ser, cmd, name, data, datatype = None, rows = 0, cols = 0):
         """ Create a message from the arguments """
@@ -395,30 +381,30 @@ class message3(SpecMessage):
         self.usec = int((self.time-self.sec)*1E6)
         self.sn, self.cmd, self.name = ser, cmd, str(name)
 
-
     def readHeader(self, rawstring):
         self.magic, self.vers, self.size, self.sn, \
                     self.sec, self.usec, self.cmd, \
                     datatype, self.rows, self.cols, \
                     datalen, self.err, name  = struct.unpack(self.packedHeaderDataFormat, rawstring)
+
         if self.magic != MAGIC_NUMBER:
             self.packedHeaderDataFormat=">"+self.packedHeaderDataFormat[1:]
             self.magic, self.vers, self.size, self.sn, \
                     self.sec, self.usec, self.cmd, \
                     datatype, self.rows, self.cols, \
                     datalen, self.err, name  = struct.unpack(self.packedHeaderDataFormat, rawstring)
-        self.time = self.sec + float(self.usec) / 1E6
-        if is_python3():
-            self.name = name.replace(NULL_B, b'') #remove padding null bytes
-        else:
-            self.name = name.replace(NULL, '') #remove padding null bytes
 
+        self.time = self.sec + float(self.usec) / 1E6
+
+        if is_python3():
+            self.name = name.replace(NULL_B, b'') # remove padding null bytes
+        else:
+            self.name = name.replace(NULL, '') # remove padding null bytes
 
         if self.err > 0:
             datatype = ERROR #change message type to 'ERROR' for further processing
 
         return (datatype, datalen)
-
 
     def sendingString(self):
         if self.type is None:
@@ -439,14 +425,12 @@ class message3(SpecMessage):
 
         return header + data
 
-
 class message4(SpecMessage):
     def __init__(self, *args, **kwargs):
         SpecMessage.__init__(self, '<IiIIIIiiIIIii80s')
 
         if len(args) > 0:
             self.init(*args, **kwargs)
-
 
     def init(self, ser, cmd, name, data, datatype = None, rows = 0, cols = 0):
         """ Create a message from the arguments """
@@ -482,12 +466,10 @@ class message4(SpecMessage):
         name = name.replace(NULL, '') #remove padding null bytes
         self.name = name.strip()
 
-
         if self.err > 0:
             datatype = ERROR #change message type to 'ERROR' for further processing
 
         return (datatype, datalen)
-
 
     def sendingString(self):
         if self.type is None:
@@ -513,11 +495,9 @@ class message4(SpecMessage):
 
         return header + data
 
-
 class anymessage(SpecMessage):
     def __init__(self, *args, **kwargs):
         SpecMessage.__init__(self, '<Ii')
-
 
     def readFromStream(self, streamBuf):
         if len(streamBuf) >= self.bytesToRead:
@@ -543,17 +523,15 @@ class anymessage(SpecMessage):
 
         return 0
 
-
 def commandListToCommandString(cmdlist):
     """Convert a command list to a Spec command string."""
-    #if type(cmdlist) == types.ListType and len(cmdlist) > 0:
+
     if isinstance(cmdlist, list) and len(cmdlist) > 0:
         cmd = [str(cmdlist[0])]
 
         for arg in cmdlist[1:]:
             argstr = repr(arg)
 
-            #if type(arg) == types.DictType:
             if isinstance(arg,dict):
                 argstr = argstr.replace('{', '[')
                 argstr = argstr.replace('}', ']')
@@ -564,83 +542,69 @@ def commandListToCommandString(cmdlist):
     else:
         return ''
 
-
 def msg_cmd_with_return(cmd, version = NATIVE_HEADER_VERSION, order="<"):
     """Return a command with return message"""
     return message_with_reply(CMD_WITH_RETURN, "", cmd, version, order)
-
 
 def msg_func_with_return(cmd, version = NATIVE_HEADER_VERSION, order="<"):
     """Return a func with return message"""
     cmd = commandListToCommandString(cmd)
     return message_with_reply(FUNC_WITH_RETURN, "", cmd, version, order)
 
-
 def msg_cmd(cmd, version = NATIVE_HEADER_VERSION, order="<"):
     """Return a command without reply message"""
     return message_no_reply(CMD, "", cmd, version, order)
-
 
 def msg_func(cmd, version = NATIVE_HEADER_VERSION, order="<"):
     """Return a func without reply message"""
     cmd = commandListToCommandString(cmd)
     return message_no_reply(FUNC, "", cmd, version, order)
 
-
 def msg_chan_read(channel, version = NATIVE_HEADER_VERSION, order="<"):
     """Return a property-reading message"""
     return message_with_reply(CHAN_READ, channel, "", version, order)
-
 
 def msg_chan_send(channel, value, version = NATIVE_HEADER_VERSION, order="<"):
     """Return a property-setting message"""
     return message_no_reply(CHAN_SEND, channel, value, version, order)
 
-
 def msg_event(channel, value, version = NATIVE_HEADER_VERSION, order="<"):
     """Return an event message"""
     return message_no_reply(EVENT, channel, value, version, order)
-
 
 def msg_register(channel, version = NATIVE_HEADER_VERSION, order="<"):
     """Return a register message"""
     return message_no_reply(REGISTER, channel, "", version, order)
 
-
 def msg_unregister(channel, version = NATIVE_HEADER_VERSION, order="<"):
     """Return an unregister message"""
     return message_no_reply(UNREGISTER, channel, "", version, order)
-
 
 def msg_close(version = NATIVE_HEADER_VERSION, order="<"):
     """Return a close message"""
     return message_no_reply(CLOSE, "", "", version, order)
 
-
 def msg_abort(version = NATIVE_HEADER_VERSION, order="<"):
     """Return an abort message"""
     return message_no_reply(ABORT, "", "", version, order)
-
 
 def msg_hello(version = NATIVE_HEADER_VERSION, order="<"):
     """Return a hello message"""
     return message_no_reply(HELLO, "python", "", version, order)
 
-
-def msg_hello_reply(replyID, serverName, version = NATIVE_HEADER_VERSION, order="<"):
-    return message(replyID, HELLO_REPLY, serverName, serverName, version = version, order=order)
-
+def msg_hello_reply(reply_id, serverName, version = NATIVE_HEADER_VERSION, order="<"):
+    return message(reply_id, HELLO_REPLY, serverName, serverName, version = version, order=order)
 
 # Methods to send any Messages
 def message_with_reply(cmd, name, data, version = NATIVE_HEADER_VERSION, order="<"):
     """ Lower level call to send a message of a certain type """
-    newReply = SpecReply.SpecReply()
-    replyID = newReply.id
 
-    m = message(replyID, cmd, name, data, version = version, order=order)
+    new_reply = SpecReply()
+    reply_id = new_reply.id
 
-    return (newReply, m)
+    msg = message(reply_id, cmd, name, data, version = version, order=order)
 
+    return (new_reply, msg)
 
 def message_no_reply(cmd, name, data, version = NATIVE_HEADER_VERSION, order="<"):
     """ Send a message which will not result in a reply from the server.
@@ -648,10 +612,8 @@ def message_no_reply(cmd, name, data, version = NATIVE_HEADER_VERSION, order="<"
     to send the message """
     return message(0, cmd, name, data, version = version, order=order)
 
+def reply_message(reply_id, name, data, version = NATIVE_HEADER_VERSION, order="<"):
+    return message(reply_id, REPLY, name, data, version = version, order=order)
 
-def reply_message(replyID, name, data, version = NATIVE_HEADER_VERSION, order="<"):
-    return message(replyID, REPLY, name, data, version = version, order=order)
-
-
-def error_message(replyID, name, data, version = NATIVE_HEADER_VERSION, order="<"):
-    return message(replyID, REPLY, name, data, ERROR, version = version, order=order)
+def error_message(reply_id, name, data, version = NATIVE_HEADER_VERSION, order="<"):
+    return message(reply_id, REPLY, name, data, ERROR, version = version, order=order)

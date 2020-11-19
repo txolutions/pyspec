@@ -110,7 +110,11 @@ class SpecHandler(asyncore.dispatcher):
 
     def handle_close(self):
         self.close()
-        self.server.clients.remove(self)
+        try:
+            self.server.clients.remove(self)
+        except:
+            log.log(2,"removing client from spec server. but it is gone already")
+            pass
 
     # END asyncore interface 
 

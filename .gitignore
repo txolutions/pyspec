@@ -4,4 +4,8 @@ datashm/build
 */*pyc
 *o
 pyspec.tmp
+build/*
 python/datashm/build/*/*
+*tgz
+*saved
+.idea
