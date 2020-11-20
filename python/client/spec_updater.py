@@ -46,6 +46,11 @@ class spec_updater(object):
                               self.default_update_time or update_time
         self.update_time /= 1000.0 # in seconds
 
+        # minimum 10 milliseconds update cycle time
+        if self.update_time < 0.01:
+            log.log(2, "update time of %s secs too short. using 0.01")
+            self.update_time = 0.01
+
     def _update(self):
         asyncore.loop(timeout=1, count=1)
 

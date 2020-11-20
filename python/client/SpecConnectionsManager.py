@@ -208,7 +208,6 @@ class _SpecConnectionsManager:
             asyncore.loop(timeout, False, fd, 1)
         else:
             pass
-            # log.log(3,"SpecConnection: cannot loop on negative fd")
 
         SpecEventsDispatcher.dispatch()
 
