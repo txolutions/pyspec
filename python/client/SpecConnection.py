@@ -38,6 +38,9 @@ import SpecChannel
 import SpecMessage
 import SpecReply
 
+from SpecCommand import SpecCommand
+from pyspec.client.SpecMotor import SpecMotor, SpecMotorA
+
 import spec_updater
 
 try:
@@ -55,6 +58,8 @@ asyncore.dispatcher.ac_in_buffer_size = 32768 #32 ko input buffer
 WAIT_HELLO_TIMEOUT = 5  # in seconds. timeout for hello reply
 UPDATER_TIME = 10 # in millisecs.  update time for spec_updater
 
+DEFAULT_REPLY_TIMEOUT = 1 # in seconds. 
+
 def _spec_connection(_class):
     """ decorator to provide connection parameter singletons """
     _instances = {}
@@ -70,10 +75,10 @@ def _spec_connection(_class):
             host = "localhost"
             specname = spec_app
 
-        if _class.class_name == "ThreadedSpecConnection":
-            thread_update = True
-        else:
+        if _class.class_name == "QSpecConnection":
             thread_update = False
+        else:
+            thread_update = True
 
         key = (host, specname, thread_update)
         if key not in _instances:
@@ -84,24 +89,24 @@ def _spec_connection(_class):
     return get_only_one
 
 @_spec_connection
-class ThreadedSpecConnection(object):
+class SpecConnection(object):
     """ 
     If using this class events are automatically propagated
     from updating thread. 
     Not thread safe. 
     Alternative: QSpecConnection
     """
-    class_name = "ThreadedSpecConnection"
+    class_name = "SpecConnection"
 
 @_spec_connection
-class SpecConnection(object):
+class QSpecConnection(object):
     """ 
     If using this class program must take care of calling conn.update_events() 
     for events to propagate 
 
     create class with argument:  "host:specname"
     """
-    class_name = "SpecConnection"
+    class_name = "QSpecConnection"
 
 class _SpecConnection(asyncore.dispatcher):
     """SpecConnection class
@@ -232,10 +237,14 @@ class _SpecConnection(asyncore.dispatcher):
             self.updater.run()
 
         start_waiting = time.time()
+
         while self.state in (DISCONNECTED, WAITINGFORHELLO):
             time.sleep(0.02)
             if time.time() - start_waiting > timeout:
                 raise SpecClientTimeoutError
+
+    def wait_channel_is(self, channel, done_value, timeout):
+        pass
 
     def check_connection(self):
         """Establish a connection to Spec
@@ -299,29 +308,29 @@ class _SpecConnection(asyncore.dispatcher):
         chan_name = str(chan_name)
 
         try:
-          if not chan_name in self.reg_channels:
-            channel = SpecChannel.SpecChannel(self, chan_name, registrationFlag)
-            self.reg_channels[chan_name] = channel
-            if channel.spec_chan_name != chan_name:
-                channel.registered = True
-                def valueChanged(value, chan_name=chan_name):
-                    channel = self.reg_channels[chan_name]
-                    channel.update(value) #,force=True)
-                self.aliasedChannels[chan_name]=valueChanged
-                self.registerChannel(channel.spec_chan_name, valueChanged, registrationFlag, dispatchMode)
-          else:
-            channel = self.reg_channels[chan_name]
+            if not chan_name in self.reg_channels:
+                channel = SpecChannel.SpecChannel(self, chan_name, registrationFlag)
 
-          SpecEventsDispatcher.connect(channel, 'valueChanged', receiver_slot, dispatchMode)
+                self.reg_channels[chan_name] = channel
 
-          channelValue = self.reg_channels[channel.spec_chan_name].value
-          if channelValue is not None:
-            # we received a value, so emit an update signal
-            channel.update(channelValue,force=True)
+                if channel.spec_chan_name != chan_name:  # for assoc array elements
+                    channel.registered = True
+                    def valueChanged(value, chan_name=chan_name):
+                        channel = self.reg_channels[chan_name]
+                        channel.update(value) 
+                    self.aliasedChannels[chan_name]=valueChanged
+                    self.registerChannel(channel.spec_chan_name, valueChanged, registrationFlag, dispatchMode)
+            else:
+                channel = self.reg_channels[chan_name]
+  
+            SpecEventsDispatcher.connect(channel, 'valueChanged', receiver_slot, dispatchMode)
+  
+            channelValue = self.reg_channels[channel.spec_chan_name].value
+            if channelValue is not None:
+                # we received a value, so emit an update signal
+                channel.update(channelValue,force=True)
         except Exception:
-          traceback.print_exc()
-
-        listreg = [ky for ky in self.reg_channels.keys() if not ky.startswith('motor') ]
+            traceback.print_exc()
 
     registerChannel = register
 
@@ -341,9 +350,73 @@ class _SpecConnection(asyncore.dispatcher):
                 self.reg_channels[chan_name].unregister()
                 del self.reg_channels[chan_name]
 
-        listreg = [ky for ky in self.reg_channels.keys() if not ky.startswith('motor') ]
-
     unregisterChannel = unregister
+
+    def run_cmd(self, cmd, timeout=2):
+        cmd = SpecCommand(self, cmd, timeout=timeout)
+        return cmd()
+
+    def get(self, chan_name):
+        p = chan_name.split("/")
+        if len(p) == 1:
+            chan_name = "var/%s" % chan_name
+        chan = self.get_channel(chan_name)
+        return chan.read()
+
+    def set(self, chan_name,value):
+        p = chan_name.split("/")
+        if len(p) == 1:
+            chan_name = "var/%s" % chan_name
+        chan = self.get_channel(chan_name)
+        return chan.write(value)
+
+    def get_position(self, mnemonic):
+        chan_name = "motor/%s/position" % mnemonic
+        chan = self.get_channel(chan_name)
+        return chan.read()
+
+    def get_version(self):
+        return self.get("var/VERSION")
+
+    def get_name(self):
+        return self.get("var/SPEC")
+
+    def get_motor(self, mne):
+        motor = SpecMotorA(self, mne)
+        return motor
+
+    def get_motors(self):
+        macro = """local md[]; 
+            for (i=0; i<MOTORS; i++) { 
+                 md[motor_mne(i)]=motor_name(i) }; 
+            return md"""
+
+        return self.run_cmd(macro)
+
+    def get_positions(self):
+        macro = """ local mpos[]
+           for (i=0;i<MOTORS;i++) {
+              mpos[motor_mne(i)]=A[i]
+           }
+        return mpos"""
+        positions = self.run_cmd(macro)
+        for ky, val in positions.items():
+            positions[ky] = float(val)
+        return positions
+
+    @property
+    def spec_version(self):
+        return self.get_version()
+
+    @property
+    def name(self):
+        return self.get_name()
+
+    def __getattr__(self, name):
+        if name in self.get_motors().keys():
+            return self.get_motor(name)
+        else:
+            raise AttributeError(name)
 
     def get_channel(self, chan_name):
         """Return a channel object
@@ -362,6 +435,7 @@ class _SpecConnection(asyncore.dispatcher):
         return self.reg_channels[chan_name]
 
     getChannel = get_channel
+
 
     def error(self, error):
         """Emit the 'error' signal when the remote Spec version signals an error."""
@@ -508,6 +582,7 @@ class _SpecConnection(asyncore.dispatcher):
 
         is_error = (msg.type == SpecMessage.ERROR)
         errmsg = msg.err
+        log.log(2, "reply arrived data is %s" % msg.data)
         reply.update(msg.data, is_error, errmsg)
 
     def dispatch_hello_reply_msg(self, msg):
@@ -596,7 +671,19 @@ class _SpecConnection(asyncore.dispatcher):
             caller = None
 
         reply, msg = SpecMessage.msg_cmd_with_return(cmd, version = self.server_version)
-        return self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
+        reply_id = self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
+
+        return reply_id
+
+    def wait_reply(self, reply, timeout=DEFAULT_REPLY_TIMEOUT):
+        start_wait = time.time()
+
+        while reply.is_pending():
+            elapsed = time.time() - start_wait
+            if elapsed > timeout:
+                raise SpecClientTimeoutError('timeout waiting for reply')
+            time.sleep(0.02)
+        return reply.get_data()
 
     def send_msg_func_with_return(self, cmd):
         """Send a command message to the remote Spec server using the new 'func' feature, and return the reply id.
@@ -734,6 +821,7 @@ class _SpecConnection(asyncore.dispatcher):
         self.reg_replies[reply_id] = reply
 
         if hasattr(receiver_obj, 'replyArrived'):
+            log.log(2, "connecting future reply with object: %s" % type(receiver_obj))
             SpecEventsDispatcher.connect(reply, 'replyFromSpec', receiver_obj.replyArrived)
 
         self.sendq.insert(0, msg)
@@ -747,6 +835,7 @@ class _SpecConnection(asyncore.dispatcher):
         method to send the message. Using this method, any reply is
         lost.
         """
+        log.log(2, "sending command no reply")
         self.sendq.insert(0, msg)
 
 if __name__ == '__main__':

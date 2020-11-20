@@ -15,28 +15,42 @@ import math
 
 from pyspec.css_logger import log
 
-from SpecConnection import SpecConnection
-from SpecCommand import SpecCommandA
 from SpecWaitObject import SpecWaitObject
-
+from SpecChannel import SpecChannel
 from SpecEventsDispatcher import UPDATEVALUE, FIREEVENT, callableObjectRef
 
 (NOTINITIALIZED, UNUSABLE, READY, MOVESTARTED, MOVING, ONLIMIT) = (0,1,2,3,4,5)
 (NOLIMIT, LOWLIMIT, HIGHLIMIT) = (0,2,4)
 
 class SpecMotor(object):
-    def __init__(self, motormne, specapp): 
+    def __init__(self, conn, motormne, callbacks={}, timeout=None):
 
-        log.log(2, "init SpecMotor mne=%s specapp=%s" % (motormne, specapp))
 
-        if None in (motormne, specapp):
+        self.motormne = motormne
+        self._conn = conn
+
+        if None in (motormne, conn):
             self._conn_ok = False
             return
 
-        if specapp and isinstance(specapp, str): 
-            self._conn = SpecConnection(specapp)
-        else:
-            self._conn = specapp
+        log.log(2, "init SpecMotor mne=%s specapp=%s" % (motormne, self._conn.get_specname()))
+
+        self.state = NOTINITIALIZED
+
+        self.limit = NOLIMIT
+        self.limits = (None, None)
+
+        self.prev_position = None
+
+        # the callbacks listed below can be set directly using the 'callbacks' keyword argument ;
+        # when the event occurs, the corresponding callback will be called automatically
+        self._callbacks = {
+            'connected': None,
+            'disconnected': None,
+            'motorLimitsChanged': None,
+            'motorPositionChanged': None,
+            'motorStateChanged': None
+        }
 
         # check that is a valid connection
         try:
@@ -57,6 +71,10 @@ class SpecMotor(object):
 
         if self._conn.isSpecConnected():
             self.spec_connected()
+
+        for cb_name in iter(self._callbacks.keys()):
+            if callable(callbacks.get(cb_name)):
+                self._callbacks[cb_name] = callableObjectRef(callbacks[cb_name])
 
     def update(self):
         self._conn.update()
@@ -81,7 +99,16 @@ class SpecMotor(object):
         c = self._conn.getChannel(self.chan_prefix % chan_name)
         c.write(value)
  
+    @property
+    def moving(self):
+        done = self.read('move_done')
+        return (not done)
+
     def wait(self, chan_name, done_value):
+        #ch = SpecChannel(self._conn, self.chan_prefix % 'move_done')
+        #ch.wait_value(done_value, timeout=self.timeout)
+        #self._conn.wait_
+        #self._conn.wait_channel(ch, value=done_value)
         ch = self.chan_prefix % 'move_done'
         w = SpecWaitObject(self._conn)
         w.waitChannelUpdate(ch, waitValue = done_value) 
@@ -104,6 +131,8 @@ class SpecMotor(object):
         self.start_move(target)
         self.wait_move_done()
 
+    mv = move
+
     def move_relative(self, inc_position):
         try:
             target = float(inc_position)
@@ -115,6 +144,7 @@ class SpecMotor(object):
 
         self.start_move(target)
         self.wait_move_done()
+    mvr = move
 
     def start_move(self, target_position):
         self.write('start_one', target_position)
@@ -132,6 +162,10 @@ class SpecMotor(object):
     def get_position(self):
         """Return the current absolute position for the motor."""
         return self.read('position')
+
+    @property
+    def position(self):
+        return self.get_position()
 
     def set_offset(self, offset):
         """Set the motor offset value"""
@@ -178,36 +212,6 @@ class SpecMotor(object):
 class SpecMotorA(SpecMotor):
     """SpecMotorA (asynchronous) class"""
 
-    def __init__(self, motormne=None, specapp=None, callbacks={}):
-        """Constructor
-
-        Keyword arguments:
-        motormne -- mnemonic of the motor 
-        specapp -- '[host:]specapp' or existing SpecConnection object
-        """
-        self.state = NOTINITIALIZED
-
-        self.limit = NOLIMIT
-        self.limits = (None, None)
-
-        self.__old_position = None
-
-        # the callbacks listed below can be set directly using the 'callbacks' keyword argument ;
-        # when the event occurs, the corresponding callback will be called automatically
-        self.__callbacks = {
-            'connected': None,
-            'disconnected': None,
-            'motorLimitsChanged': None,
-            'motorPositionChanged': None,
-            'motorStateChanged': None
-        }
-
-        SpecMotor.__init__(self,motormne,specapp)
-
-        for cb_name in iter(self.__callbacks.keys()):
-            if callable(callbacks.get(cb_name)):
-                self.__callbacks[cb_name] = callableObjectRef(callbacks[cb_name])
-
     def register(self, channame, cb, mode=UPDATEVALUE):
         self._conn.registerChannel(self.chan_prefix % channame,  cb, dispatchMode=mode)
 
@@ -238,13 +242,12 @@ class SpecMotorA(SpecMotor):
         self.update()
  
         try: 
-            if self.__callbacks.get("connected"):
-                cb = self.__callbacks["connected"]()
+            if self._callbacks.get("connected"):
+                cb = self._callbacks["connected"]()
                 if cb is not None:
                     cb()
         finally:
             self.connected()
-
 
     def disconnected(self):
         """Callback triggered by a 'disconnected' event from Spec
@@ -261,8 +264,8 @@ class SpecMotorA(SpecMotor):
         self.__changeMotorState(NOTINITIALIZED)
 
         try:
-          if self.__callbacks.get("disconnected"):
-            cb = self.__callbacks["disconnected"]()
+          if self._callbacks.get("disconnected"):
+            cb = self._callbacks["disconnected"]()
             if cb is not None:
               cb()
         finally:
@@ -276,8 +279,8 @@ class SpecMotorA(SpecMotor):
 
     def _motorLimitsChanged(self):
         try:
-          if self.__callbacks.get("motorLimitsChanged"):
-            cb = self.__callbacks["motorLimitsChanged"]()
+          if self._callbacks.get("motorLimitsChanged"):
+            cb = self._callbacks["motorLimitsChanged"]()
             if cb is not None:
                cb()
         finally:
@@ -322,16 +325,16 @@ class SpecMotorA(SpecMotor):
                 self.__changeMotorState(ONLIMIT)
 
     def __motorPositionChanged(self, absolutePosition):
-        if self.__old_position is None:
-            self.__old_position = absolutePosition
+        if self.prev_position is None:
+            self.prev_position = absolutePosition
         else:
-            if math.fabs(absolutePosition - self.__old_position) > 1E-6:
-                self.__old_position = absolutePosition
+            if math.fabs(absolutePosition - self.prev_position) > 1E-6:
+                self.prev_position = absolutePosition
             else:
                 return
         try:
-            if self.__callbacks.get("motorPositionChanged"):
-                cb = self.__callbacks["motorPositionChanged"]()
+            if self._callbacks.get("motorPositionChanged"):
+                cb = self._callbacks["motorPositionChanged"]()
                 if cb is not None:
                    cb(absolutePosition)
         finally:
@@ -399,8 +402,8 @@ class SpecMotorA(SpecMotor):
         self.state = state
 
         try:
-            if self.__callbacks.get("motorStateChanged"):
-                cb = self.__callbacks["motorStateChanged"]()
+            if self._callbacks.get("motorStateChanged"):
+                cb = self._callbacks["motorStateChanged"]()
                 if cb is not None:
                     cb(state)
         finally:
@@ -430,8 +433,3 @@ class SpecMotorA(SpecMotor):
     def getState(self):
         """Return the current motor state."""
         return self.state
-
-if __name__ == '__main__':
-    mot = SpecMotor("chi", "fourc")
-    print(mot.get_position())
-    mot.end()

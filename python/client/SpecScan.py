@@ -15,11 +15,6 @@ from pyspec.css_logger import log
 from SpecConnectionsManager import SpecConnectionsManager
 import SpecCommand as SpecCommand
 import SpecEventsDispatcher as SpecEventsDispatcher
-import SpecWaitObject as SpecWaitObject
-
-
-__author__ = 'Matias Guijarro (ESRF) / Darren Dale (CHESS)'
-__version__ = 1
 
 (TIMESCAN) = (16)
 
@@ -117,7 +112,6 @@ class SpecScanA:
         else:
             self.connection = None
 
-
     def connectToSpec(self, specVersion):
         self.connection = SpecConnectionsManager().getConnection(specVersion)
         self.__specVersion = specVersion
@@ -129,7 +123,6 @@ class SpecScanA:
 
         if self.connection.isSpecConnected():
             self.__connected()
-
 
     def isConnected(self):
         return self.connection and self.connection.isSpecConnected()
@@ -264,34 +257,27 @@ class SpecScanA:
 
     def resume(self):
         if self.isConnected() and self.paused:
-            SpecCommand.SpecCommandA('scan_on', self.specVersion)()
-
+            SpecCommand.SpecCommandA(self.connection, 'scan_on')()
 
     def scanAborted(self):
         pass
 
-
     def scanFinished(self):
         pass
-
 
     def scanPaused(self):
         pass
 
-
     def scanResumed(self):
         pass
 
-
     def scanStarted(self): # A.B
         pass # A.B
-
 
     def __statusReady(self, status):
         if status and self.scanning:
             self.__status = 'paused'
             self.scanPaused()
-
 
     def ascan(self, motorMne, startPos, endPos, nbPoints, countTime):
         if self.connection.isSpecConnected():

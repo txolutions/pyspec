@@ -77,14 +77,15 @@ PY_SRC = css_logger.py utils.py __init__.py
 
 MODULES = datashm.so 
 
-CLIENT_SRC = __init__.py saferef.py Spec.py SpecArray.py SpecChannel.py \
+CLIENT_SRC = __init__.py saferef.py SpecArray.py SpecChannel.py \
 	SpecClientError.py SpecCommand.py SpecConnection.py SpecConnectionsManager.py \
 	SpecCounter.py SpecEventsDispatcher.py SpecMessage.py SpecMotor.py \
 	SpecReply.py SpecScan.py SpecServer.py SpecVariable.py SpecWaitObject.py \
 	spec_shm.py spec_updater.py
 
 EXAMPLES = README example_qt_command.py	example_qt_motor.py \
-	example_qt_status.py example_qt_variable.py example_calc_server.py
+	example_qt_status.py example_qt_variable.py example_calc_server.py \
+	example_sync_session.py
 
 HDW_SRC = __init__.py eigerclient.py server.py
 

@@ -7,76 +7,65 @@
 
 This module defines the class for Spec variable objects
 """
+from SpecConnection import SpecConnection
 
-__author__ = 'Matias Guijarro'
-__version__ = '1.0'
-
-import SpecConnectionsManager as SpecConnectionsManager
 import SpecEventsDispatcher as SpecEventsDispatcher
 import SpecWaitObject as SpecWaitObject
 
-(UPDATEVALUE, FIREEVENT) = (SpecEventsDispatcher.UPDATEVALUE, SpecEventsDispatcher.FIREEVENT)
+from SpecEventsDispatcher import UPDATEVALUE, FIREEVENT
 
-class SpecVariable:
+class SpecVariable(object):
     """SpecVariable class
 
     Thin wrapper around SpecChannel objects, to make
     variables watching, setting and getting values easier.
     """
-    def __init__(self, varName = None, specVersion = None, timeout = None, prefix=True):
+    def __init__(self, varname, specapp):
         """Constructor
 
         Keyword arguments:
-        varName -- the variable name in Spec
-        specVersion -- 'host:port' string representing a Spec server to connect to (defaults to None)
+        varname -- the variable name in Spec
+        specapp -- 'host:port' string representing a Spec server to connect to (defaults to None)
         timeout -- optional timeout (defaults to None)
         """
-        self.connection = None
-        self.isConnected = self.isSpecConnected #alias
+        self._conn = None
 
-        if varName is not None and specVersion is not None:
-            self.connectToSpec(varName, specVersion, timeout, prefix)
+        if varname is not None and specapp is not None:
+            self.connectToSpec(varname, specapp)
         else:
-            self.channelName = None
-            self.specVersion = None
+            self.chan_name = None
 
-
-    def connectToSpec(self, varName, specVersion, timeout = None, prefix=True):
+    def connectToSpec(self, varname, specapp):
         """Connect to a remote Spec
 
         Connect to Spec
 
         Arguments:
-        varName -- the variable name in Spec
-        specVersion -- 'host:port' string representing a Spec server to connect to
+        varname -- the variable name in Spec
+        specapp -- 'host:port' string representing a Spec server to connect to
         timeout -- optional timeout (defaults to None)
         """
-        if prefix:
-          self.channelName = 'var/' + str(varName)
+        if "/" in varname: 
+            self.chan_name = str(varname)
         else:
-          self.channelName = str(varName)
-        self.specVersion = specVersion
+            self.chan_name = 'var/' + str(varname)
 
-        if isinstance(specVersion, str):
-            self.connection = SpecConnectionsManager.SpecConnectionsManager().getConnection(specVersion)
+        if isinstance(specapp, str):
+            self._conn = SpecConnection(specapp)
         else:
-            self.connection = specVersion
+            self._conn = specapp
 
-        w = SpecWaitObject.SpecWaitObject(self.connection)
-        w.waitConnection(timeout)
+        self._conn.wait_connected()
 
-
-    def isSpecConnected(self):
+    def is_connected(self):
         """Return whether the remote Spec version is connected or not."""
-        return self.connection is not None and self.connection.isSpecConnected()
-
+        return self._conn is not None and self._conn.is_connected()
 
     def getValue(self):
         """Return the watched variable current value."""
-        chan = self.connection.getChannel(self.channelName)
-
-        return chan.read()
-
+        if self.is_connected():
+            return self._conn.get(self.chan_name)
+        return None
 
     def setValue(self, value):
         """Set the watched variable value
@@ -84,11 +73,8 @@ class SpecVariable:
         Arguments:
         value -- the new variable value
         """
-        if self.isConnected():
-            chan = self.connection.getChannel(self.channelName)
-
-            return chan.write(value)
-
+        if self.is_connected():
+            return self._conn.set(self.chan_name, value)
 
     def waitUpdate(self, waitValue = None, timeout = None):
         """Wait for the watched variable value to change
@@ -97,97 +83,60 @@ class SpecVariable:
         waitValue -- wait for a specific variable value
         timeout -- optional timeout
         """
-        if self.isConnected():
-            w = SpecWaitObject.SpecWaitObject(self.connection)
-
-            w.waitChannelUpdate(self.channelName, waitValue = waitValue, timeout = timeout)
-
+        if self.is_connected():
+            w = SpecWaitObject.SpecWaitObject(self._conn)
+            w.waitChannelUpdate(self.chan_name, waitValue = waitValue, timeout = timeout)
             return w.value
 
-
-class SpecVariableA:
+class SpecVariableA(SpecVariable):
     """SpecVariableA class - asynchronous version of SpecVariable
 
     Thin wrapper around SpecChannel objects, to make
     variables watching, setting and getting values easier.
     """
-    def __init__(self, varName = None, specVersion = None, dispatchMode = UPDATEVALUE, prefix=True, callbacks={}):
+    def __init__(self, varname = None, specapp = None, dispatchMode = UPDATEVALUE, callbacks={}):
         """Constructor
 
         Keyword arguments:
-        varName -- name of the variable to monitor (defaults to None)
-        specVersion -- 'host:port' string representing a Spec server to connect to (defaults to None)
+        varname -- name of the variable to monitor (defaults to None)
+        specapp -- 'host:port' string representing a Spec server to connect to (defaults to None)
         """
-        self.connection = None
-        self.dispatchMode = UPDATEVALUE
-        self.channelName = ''
         self.__callbacks = {
           'connected': None,
           'disconnected': None,
           'update': None,
         }
+
         for cb_name in iter(self.__callbacks.keys()):
-          if callable(callbacks.get(cb_name)):
-            self.__callbacks[cb_name] = SpecEventsDispatcher.callableObjectRef(callbacks[cb_name])
+            if callable(callbacks.get(cb_name)):
+               self.__callbacks[cb_name] = SpecEventsDispatcher.callableObjectRef(callbacks[cb_name])
 
+        super(SpecVariableA,self).__init__(varname, specapp)
 
-        if varName is not None and specVersion is not None:
-            self.connectToSpec(varName, specVersion, dispatchMode = dispatchMode, prefix=prefix)
-        else:
-            self.varName = None
-            self.specVersion = None
+        self._conn.connect_event('connected', self._connected)
+        self._conn.connect_event('disconnected', self._disconnected)
 
-
-    def connectToSpec(self, varName, specVersion, dispatchMode = UPDATEVALUE, prefix=True):
-        """Connect to a remote Spec
-
-        Connect to Spec and register channel for monitoring variable
-
-        Arguments:
-        varName -- name of the variable
-        specVersion -- 'host:port' string representing a Spec server to connect to
-        """
-        self.varName = varName
-        self.specVersion = specVersion
-        if prefix:
-          self.channelName = 'var/%s' % varName
-        else:
-          self.channelName = varName
-
-        if isinstance(specVersion,str):
-            self.connection = SpecConnectionsManager.SpecConnectionsManager().getConnection(specVersion)
-        else:
-            self.connection = specVersion
-        self.connection.connect_event('connected', self._connected)
-        self.connection.connect_event('disconnected', self._disconnected)
         self.dispatchMode = dispatchMode
 
-        if self.connection.isSpecConnected():
+        if self._conn.is_connected():
             self._connected()
 
     def refresh(self):
-        self.connection.update()
-
-    def isSpecConnected(self):
-        return self.connection is not None and self.connection.isSpecConnected()
-
+        self._conn.update()
 
     def _connected(self):
         #
         # register channel
         #
-        self.connection.registerChannel(self.channelName, self._update, dispatchMode = self.dispatchMode)
-
-        self.connection.send_msg_hello()
+        self._conn.registerChannel(self.chan_name, self._update, dispatchMode = self.dispatchMode)
 
         try:
-          if self.__callbacks.get("connected"):
-            cb = self.__callbacks["connected"]()
-            if cb is not None:
-              cb()
+            if self.__callbacks.get("connected"):
+                cb = self.__callbacks["connected"]()
+                if cb is not None:
+                    cb()
         finally:
             self.connected()
-
 
     def connected(self):
         """Callback triggered by a 'connected' event from Spec
@@ -196,16 +145,14 @@ class SpecVariableA:
         """
         pass
 
-
     def _disconnected(self):
         try:
-          if self.__callbacks.get("disconnected"):
-            cb = self.__callbacks["disconnected"]()
-            if cb is not None:
-              cb()
+            if self.__callbacks.get("disconnected"):
+                cb = self.__callbacks["disconnected"]()
+                if cb is not None:
+                    cb()
         finally:
-          self.disconnected()
-
+            self.disconnected()
 
     def disconnected(self):
         """Callback triggered by a 'disconnected' event from Spec
@@ -214,16 +161,14 @@ class SpecVariableA:
         """
         pass
 
-
     def _update(self, value):
         try:
-          if self.__callbacks.get("update"):
-            cb = self.__callbacks["update"]()
-            if cb is not None:
-              cb(value)
+            if self.__callbacks.get("update"):
+                cb = self.__callbacks["update"]()
+                if cb is not None:
+                    cb(value)
         finally:
-          self.update(value)
-        
+            self.update(value)
 
     def update(self, value):
         """Callback triggered by a variable update
@@ -232,22 +177,3 @@ class SpecVariableA:
         """
         pass
 
-
-    def getValue(self):
-        """Return the watched variable current value."""
-        if self.connection is not None:
-            chan = self.connection.getChannel(self.channelName)
-
-            return chan.read()
-
-
-    def setValue(self, value):
-        """Set the watched variable value
-
-        Arguments:
-        value -- the new variable value
-        """
-        if self.connection is not None:
-            chan = self.connection.getChannel(self.channelName)
-
-            return chan.write(value)
