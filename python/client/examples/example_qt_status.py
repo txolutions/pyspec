@@ -33,12 +33,12 @@ class StatusWidget(QWidget):
 
         self.conn = SpecConnection(specname)
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.poll)
-        self.timer.start(10)
+        #self.timer = QTimer()
+        #self.timer.timeout.connect(self.poll)
+        #self.timer.start(10)
 
-        self.conn.connect('connected', self.server_connected)
-        self.conn.connect('disconnected', self.server_disconnected)
+        self.conn.connect_event('connected', self.server_connected)
+        self.conn.connect_event('disconnected', self.server_disconnected)
 
     def poll(self,timeout=0.01):
         self.conn.update()
@@ -88,8 +88,7 @@ class StatusWidget(QWidget):
 def main():
     app = QApplication([])
     win = QMainWindow()
-    var =  StatusWidget("localhost:fourc")
-
+    var =  StatusWidget("fourc")
     win.setCentralWidget(var)
     win.show()
 

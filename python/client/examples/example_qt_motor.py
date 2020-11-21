@@ -3,15 +3,13 @@
 #  "pyspec" Release %R%
 #
 
-from pyspec.client.SpecMotor import SpecMotorA, SpecMotor
-from pyspec.client.SpecConnection import SpecConnection
+from pyspec.client import motor, motor_async
 from pyspec.graphics.QVariant import *
-
 from pyspec.css_logger import log
 
 class MotorWidget(QWidget):
 
-    def __init__(self, motormne, specname, *args): 
+    def __init__(self, specname, motormne, *args): 
         self.motormne = motormne
         self.specname = specname
         QWidget.__init__(self, *args)
@@ -29,25 +27,21 @@ class MotorWidget(QWidget):
         self.timer.start(10)
 
         # need to define callbacks
-        cb =  {"motorPositionChanged": self.position_change,
-               "motorStateChanged": self.state_change}
+        cb =  {"motorPositionChanged": self.position_changed,
+               "motorStateChanged": self.state_changed}
 
         # create asyncronous motor
-        #self.conn = SpecConnection(self.specname)
-        self.motor = SpecMotorA(self.motormne, self.specname, callbacks=cb)
+        self.motor = motor_async(self.specname, self.motormne, callbacks=cb)
 
     def do_move(self):
         target = self.position_ledit.text()
-        print( "moving %s to %s" % (self.motormne, target))
         # call move
         self.motor.move(float(target))
 
-    def position_change(self, value):
-        print( "position is now ", value)
+    def position_changed(self, value):
         self.position_ledit.setText(str(value))
 
-    def state_change(self, value):
-        print( "state is now " + str(value))
+    def state_changed(self, value):
         if value == 4:
             self.position_ledit.setStyleSheet("background-color: #e0e000")
         else:
@@ -60,7 +54,7 @@ def main():
     log.start()
     app = QApplication([])
     win = QMainWindow()
-    motor = MotorWidget("chi", "fourc")
+    motor = MotorWidget("fourc", "chi")
 
     win.setCentralWidget(motor)
     win.show()

@@ -3,7 +3,7 @@
 #  "pyspec" Release %R%
 #
 
-from pyspec.client.SpecCommand import SpecCommand
+from pyspec.client import command
 from pyspec.graphics.QVariant import *
 
 class CommandWidget(QWidget):
@@ -16,7 +16,7 @@ class CommandWidget(QWidget):
         self.setLayout(layout)
         self.cmd_button = QPushButton(cmdname) 
         self.cmd_button.clicked.connect(self.call_cmd)
-        self._command = SpecCommand(cmdname, self.specname)
+        self._command = command(specname, cmdname)
 
         self.name_box = QHBoxLayout()
         self.label = QLabel("Your name:" ) 
@@ -33,8 +33,8 @@ class CommandWidget(QWidget):
              return retstr 
           }' 
         """
-        self._defmac_cmd = SpecCommand(self.hello_mac, self.specname)
-        self._say_command = SpecCommand("hello", self.specname)
+        self._defmac_cmd = command(specname, self.hello_mac)
+        self._say_command = command(specname, "hello")
 
         self.name_box.addWidget(self.label)
         self.name_box.addWidget(self.name_ledit)
