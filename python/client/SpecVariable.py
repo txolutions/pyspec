@@ -20,7 +20,7 @@ class SpecVariable(object):
     Thin wrapper around SpecChannel objects, to make
     variables watching, setting and getting values easier.
     """
-    def __init__(self, varname, specapp):
+    def __init__(self, specapp, varname):
         """Constructor
 
         Keyword arguments:
@@ -94,7 +94,7 @@ class SpecVariableA(SpecVariable):
     Thin wrapper around SpecChannel objects, to make
     variables watching, setting and getting values easier.
     """
-    def __init__(self, varname = None, specapp = None, dispatchMode = UPDATEVALUE, callbacks={}):
+    def __init__(self, specapp=None, varname = None, dispatchMode = UPDATEVALUE, callbacks={}):
         """Constructor
 
         Keyword arguments:
@@ -111,7 +111,7 @@ class SpecVariableA(SpecVariable):
             if callable(callbacks.get(cb_name)):
                self.__callbacks[cb_name] = SpecEventsDispatcher.callableObjectRef(callbacks[cb_name])
 
-        super(SpecVariableA,self).__init__(varname, specapp)
+        super(SpecVariableA,self).__init__(specapp, varname)
 
         self._conn.connect_event('connected', self._connected)
         self._conn.connect_event('disconnected', self._disconnected)

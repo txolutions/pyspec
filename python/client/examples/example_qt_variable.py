@@ -3,15 +3,20 @@
 #  "pyspec" Release %R%
 #
 
+from pyspec.client import variable_async
+from pyspec.css_logger import log
+
+from pyspec.client.SpecConnection import QSpecConnection
 from pyspec.client.SpecVariable import SpecVariableA
-from pyspec.client.SpecConnection import SpecConnection
 from pyspec.graphics.QVariant import *
 
 class VariableWidget(QWidget):
 
-    def __init__(self, varname, specname, *args): 
-        self.varname = varname
+    def __init__(self, specname, varname, *args): 
+
         self.specname = specname
+        self.varname = varname
+
         QWidget.__init__(self, *args)
 
         layout = QHBoxLayout()
@@ -27,14 +32,13 @@ class VariableWidget(QWidget):
         self.timer.timeout.connect(self.update)
         self.timer.start(10)
 
+        self.conn = QSpecConnection(self.specname)
+
         callbacks = {'update': self.value_change}
-        self.conn = SpecConnection(self.specname)
-        self.variable = SpecVariableA(self.varname, self.conn, callbacks=callbacks)
-        #self.variable = SpecVariableA(self.varname, self.specname, callbacks=callbacks)
+        self.variable = SpecVariableA(self.conn, self.varname, callbacks=callbacks)
 
     def do_setvar(self):
         target = self.value_ledit.text()
-        print("setting %s to %s" % (self.varname, target))
         self.variable.setValue(str(target))
 
     def value_change(self, value):
@@ -42,13 +46,15 @@ class VariableWidget(QWidget):
         self.value_ledit.setText(str(value))
 
     def update(self):
-        #self.variable.refresh()
+        ##self.variable.refresh()
         self.conn.update()
 
 def main():
+    log.start()
+
     app = QApplication([])
     win = QMainWindow()
-    var =  VariableWidget("MYVAR", "localhost:fourc")
+    var =  VariableWidget("fourc", "MYVAR")
 
     win.setCentralWidget(var)
     win.show()
