@@ -227,7 +227,6 @@ class _SpecConnection(asyncore.dispatcher):
         self.close()
 
     def __del__(self):
-        log.log(2, "deleting connection")
         self.close_connection()
 
     # END update thread handling
@@ -275,7 +274,6 @@ class _SpecConnection(asyncore.dispatcher):
                 if self.scanports:
                     self.port += 1 
                 else:
-                    log.log(2, "connected by port number %s succeeded. " % self.port)
                     break
         elif self.state == WAITINGFORHELLO:
             if (time.time() - self.waiting_hello_started) > WAIT_HELLO_TIMEOUT:
@@ -356,14 +354,15 @@ class _SpecConnection(asyncore.dispatcher):
         cmd = SpecCommand(self, cmd, timeout=timeout)
         return cmd()
 
-    def get(self, chan_name):
+    def read_channel(self, chan_name):
         p = chan_name.split("/")
         if len(p) == 1:
             chan_name = "var/%s" % chan_name
+
         chan = self.get_channel(chan_name)
         return chan.read()
 
-    def set(self, chan_name,value):
+    def write_channel(self, chan_name,value):
         p = chan_name.split("/")
         if len(p) == 1:
             chan_name = "var/%s" % chan_name
@@ -487,8 +486,6 @@ class _SpecConnection(asyncore.dispatcher):
     def handle_close(self):
         """Handle 'close' event on socket."""
 
-        log.log(2, "connection to spec:%s closed" % str(self.specname))
-
         self.socket_connected = False
         self.server_version = None
 
@@ -582,7 +579,6 @@ class _SpecConnection(asyncore.dispatcher):
 
         is_error = (msg.type == SpecMessage.ERROR)
         errmsg = msg.err
-        log.log(2, "reply arrived data is %s" % msg.data)
         reply.update(msg.data, is_error, errmsg)
 
     def dispatch_hello_reply_msg(self, msg):
@@ -675,14 +671,21 @@ class _SpecConnection(asyncore.dispatcher):
 
         return reply_id
 
-    def wait_reply(self, reply, timeout=DEFAULT_REPLY_TIMEOUT):
+    def wait_reply(self, reply_id, timeout=DEFAULT_REPLY_TIMEOUT):
+
         start_wait = time.time()
+
+        if reply_id not in self.reg_replies:
+            return None
+
+        reply = self.reg_replies[reply_id]
 
         while reply.is_pending():
             elapsed = time.time() - start_wait
             if elapsed > timeout:
                 raise SpecClientTimeoutError('timeout waiting for reply')
             time.sleep(0.02)
+
         return reply.get_data()
 
     def send_msg_func_with_return(self, cmd):
@@ -703,7 +706,8 @@ class _SpecConnection(asyncore.dispatcher):
             caller = None
 
         reply, msg = SpecMessage.msg_func_with_return(cmd, version = self.server_version)
-        return self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
+        reply_id = self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
+        return reply_id
 
     def send_msg_cmd(self, cmd):
         """Send a command message to the remote Spec server.
@@ -746,7 +750,8 @@ class _SpecConnection(asyncore.dispatcher):
             caller = None
 
         reply, msg = SpecMessage.msg_chan_read(chan_name, version = self.server_version)
-        return self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
+        reply_id = self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
+        return reply_id
 
     def send_msg_chan_send(self, chan_name, value):
         """Send a channel write message.
@@ -821,7 +826,6 @@ class _SpecConnection(asyncore.dispatcher):
         self.reg_replies[reply_id] = reply
 
         if hasattr(receiver_obj, 'replyArrived'):
-            log.log(2, "connecting future reply with object: %s" % type(receiver_obj))
             SpecEventsDispatcher.connect(reply, 'replyFromSpec', receiver_obj.replyArrived)
 
         self.sendq.insert(0, msg)
@@ -835,7 +839,6 @@ class _SpecConnection(asyncore.dispatcher):
         method to send the message. Using this method, any reply is
         lost.
         """
-        log.log(2, "sending command no reply")
         self.sendq.insert(0, msg)
 
 if __name__ == '__main__':

@@ -31,8 +31,8 @@ __all__ = [
     ]
 
 
-from SpecConnection import SpecConnection
-spec = SpecConnection
+#from SpecConnection import SpecConnection
+#spec = SpecConnection
 
 import sys
 

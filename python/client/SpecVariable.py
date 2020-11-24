@@ -7,8 +7,6 @@
 
 This module defines the class for Spec variable objects
 """
-from SpecConnection import SpecConnection
-
 import SpecEventsDispatcher as SpecEventsDispatcher
 import SpecWaitObject as SpecWaitObject
 
@@ -20,7 +18,7 @@ class SpecVariable(object):
     Thin wrapper around SpecChannel objects, to make
     variables watching, setting and getting values easier.
     """
-    def __init__(self, specapp, varname):
+    def __init__(self, conn, varname):
         """Constructor
 
         Keyword arguments:
@@ -28,46 +26,31 @@ class SpecVariable(object):
         specapp -- 'host:port' string representing a Spec server to connect to (defaults to None)
         timeout -- optional timeout (defaults to None)
         """
-        self._conn = None
 
-        if varname is not None and specapp is not None:
-            self.connectToSpec(varname, specapp)
-        else:
-            self.chan_name = None
+        if None in (varname, conn):
+            raise SpecClientError("Bad SpecVariable initialization")
 
-    def connectToSpec(self, varname, specapp):
-        """Connect to a remote Spec
-
-        Connect to Spec
-
-        Arguments:
-        varname -- the variable name in Spec
-        specapp -- 'host:port' string representing a Spec server to connect to
-        timeout -- optional timeout (defaults to None)
-        """
         if "/" in varname: 
             self.chan_name = str(varname)
         else:
             self.chan_name = 'var/' + str(varname)
 
-        if isinstance(specapp, str):
-            self._conn = SpecConnection(specapp)
-        else:
-            self._conn = specapp
-
+        self._conn = conn
         self._conn.wait_connected()
 
     def is_connected(self):
         """Return whether the remote Spec version is connected or not."""
         return self._conn is not None and self._conn.is_connected()
 
-    def getValue(self):
+    def get(self):
         """Return the watched variable current value."""
         if self.is_connected():
-            return self._conn.get(self.chan_name)
+            return self._conn.read_channel(self.chan_name)
         return None
 
-    def setValue(self, value):
+    getValue = get
+
+    def set(self, value):
         """Set the watched variable value
 
         Arguments:
@@ -75,6 +58,7 @@ class SpecVariable(object):
         """
         if self.is_connected():
             return self._conn.set(self.chan_name, value)
+    setValue = set
 
     def waitUpdate(self, waitValue = None, timeout = None):
         """Wait for the watched variable value to change
@@ -94,7 +78,7 @@ class SpecVariableA(SpecVariable):
     Thin wrapper around SpecChannel objects, to make
     variables watching, setting and getting values easier.
     """
-    def __init__(self, specapp=None, varname = None, dispatchMode = UPDATEVALUE, callbacks={}):
+    def __init__(self, conn, varname, dispatchMode = UPDATEVALUE, callbacks={}):
         """Constructor
 
         Keyword arguments:
@@ -111,7 +95,7 @@ class SpecVariableA(SpecVariable):
             if callable(callbacks.get(cb_name)):
                self.__callbacks[cb_name] = SpecEventsDispatcher.callableObjectRef(callbacks[cb_name])
 
-        super(SpecVariableA,self).__init__(specapp, varname)
+        super(SpecVariableA,self).__init__(conn, varname)
 
         self._conn.connect_event('connected', self._connected)
         self._conn.connect_event('disconnected', self._disconnected)

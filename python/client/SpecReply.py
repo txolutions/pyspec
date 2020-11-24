@@ -42,7 +42,6 @@ class SpecReply(object):
         self.error_code = error_code
 
         self.pending = False
-        log.log(2, "emitting replyFromSpec")
         SpecEventsDispatcher.emit(self, 'replyFromSpec', (self, ))
 
     def is_pending(self):

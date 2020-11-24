@@ -33,8 +33,6 @@ class SpecMotor(object):
             self._conn_ok = False
             return
 
-        log.log(2, "init SpecMotor mne=%s specapp=%s" % (motormne, self._conn.get_specname()))
-
         self.state = NOTINITIALIZED
 
         self.limit = NOLIMIT
@@ -69,7 +67,7 @@ class SpecMotor(object):
         self._conn.connect_event('connected', self.spec_connected)
         self._conn.connect_event('disconnected', self.spec_disconnected)
 
-        if self._conn.isSpecConnected():
+        if self._conn.is_connected():
             self.spec_connected()
 
         for cb_name in iter(self._callbacks.keys()):
@@ -88,16 +86,12 @@ class SpecMotor(object):
     def read(self, chan_name):
         if not self._conn_ok:
             return
-
-        c = self._conn.getChannel(self.chan_prefix % chan_name)
-        return c.read()
+        return self._conn.read_channel(self.chan_prefix % chan_name)
 
     def write(self, chan_name, value):
         if not self._conn_ok:
             return
-
-        c = self._conn.getChannel(self.chan_prefix % chan_name)
-        c.write(value)
+        self._conn.write_channel(self.chan_prefix % chan_name, value)
  
     @property
     def moving(self):
@@ -105,13 +99,9 @@ class SpecMotor(object):
         return (not done)
 
     def wait(self, chan_name, done_value):
-        #ch = SpecChannel(self._conn, self.chan_prefix % 'move_done')
-        #ch.wait_value(done_value, timeout=self.timeout)
-        #self._conn.wait_
-        #self._conn.wait_channel(ch, value=done_value)
         ch = self.chan_prefix % 'move_done'
         w = SpecWaitObject(self._conn)
-        w.waitChannelUpdate(ch, waitValue = done_value) 
+        w.wait_update(ch, done_value = done_value) 
 
     def move(self, target_position):
         """Move the motor
@@ -130,7 +120,6 @@ class SpecMotor(object):
 
         self.start_move(target)
         self.wait_move_done()
-
     mv = move
 
     def move_relative(self, inc_position):
@@ -366,8 +355,7 @@ class SpecMotorA(SpecMotor):
             a = self.syncQuestionAnswer(specSteps, controllerSteps)
 
             if a is not None:
-                c = self._conn.getChannel(self.chan_prefix % 'sync_check')
-                c.write(a)
+                self._conn.write_channel(self.chan_prefix % 'sync_check', a)
 
     def syncQuestionAnswer(self, specSteps, controllerSteps):
         """Answer to the sync. question

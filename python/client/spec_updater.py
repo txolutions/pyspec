@@ -90,7 +90,6 @@ class spec_updater(object):
         while True:
             try:
                 if not self.started:
-                    log.log(2, "stopping updater")
                     break
                 self.update_func()
                 time.sleep(self.update_time)
