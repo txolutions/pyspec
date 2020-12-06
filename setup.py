@@ -44,7 +44,7 @@ with open('README.rst') as dfd:
 
 try:
     from setuptools import setup, Extension, find_packages
-    packages = find_packages()
+    packages = find_packages(exclude=['python/graphics'])
 except ImportError:
     # for python2 compatability
     from distutils.core import setup, Extension
@@ -66,10 +66,16 @@ datashm_ext = Extension('pyspec/datashm',
                     include_dirs = [datashm_dir],
                     sources = datashm_sources,)
 
+try:
+    from VERSION import getVersion
+    __version__ = getVersion()
+except:
+    __version__ = '1.1.7'
+
 setup(name='certif_pyspec',
-	version='1.1',
+	version=__version__,
 	description='Python SPEC modules and tools',
-        download_url='https://github.com/txolutions/pyspec/archive/v1.0.tar.gz',
+        download_url='https://pypi.org/projects/certif-pyspec/',
         long_description=long_description,
 	author='TXOlutions',
 	author_email='txo@txolutions.com',

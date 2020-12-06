@@ -50,6 +50,14 @@ class SpecVariable(object):
 
     getValue = get
 
+    @property
+    def value(self):
+        return self.get()
+
+    @value.setter
+    def value(self, value):
+        self.set(value)
+
     def set(self, value):
         """Set the watched variable value
 
@@ -57,7 +65,7 @@ class SpecVariable(object):
         value -- the new variable value
         """
         if self.is_connected():
-            return self._conn.set(self.chan_name, value)
+            return self._conn.write_channel(self.chan_name, value)
     setValue = set
 
     def waitUpdate(self, waitValue = None, timeout = None):

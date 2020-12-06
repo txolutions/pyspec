@@ -2,14 +2,14 @@
 #
 #  %W%  %G% CSS
 #
-#  "splot" Release %R%
+#  "pyspec" Release %R%
 #
-#  Copyright (c) 2013,2014,2015,2016
+#  Copyright (c) 2013,2014,2015,2016,2020
 #  by Certified Scientific Software.
 #  All rights reserved.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
-#  copy of this software ("splot") and associated documentation files (the
+#  copy of this software ("pyspec") and associated documentation files (the
 #  "Software"), to deal in the Software without restriction, including
 #  without limitation the rights to use, copy, modify, merge, publish,
 #  distribute, sublicense, and/or sell copies of the Software, and to
@@ -34,7 +34,7 @@
 #
 #******************************************************************************
 
-version = "3.3"
+version = "1.1.7"
 
 def getVersion():
     global version
