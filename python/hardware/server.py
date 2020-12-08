@@ -669,6 +669,7 @@ Check documentation for writing your own server
             # sync asyncore
             asyncore.loop(timeout=0.1, count=1)
             self.update()
+            time.sleep(0.001) # to avoid grabbing 100 cpu
 
             if self.say_bye:
                 log.log(1,"Bye")
