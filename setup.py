@@ -67,7 +67,7 @@ datashm_ext = Extension('pyspec/datashm',
                     sources = datashm_sources,)
 
 setup(name='certif_pyspec',
-	version='1.0',
+	version='1.1.9',
 	description='Python SPEC modules and tools',
         download_url='https://github.com/txolutions/pyspec/archive/v1.0.tar.gz',
         long_description=long_description,
