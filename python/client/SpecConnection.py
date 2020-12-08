@@ -114,7 +114,7 @@ class _SpecConnection(asyncore.dispatcher):
     Signals:
     connected() -- emitted when the required Spec version gets connected
     disconnected() -- emitted when the required Spec version gets disconnected
-    replyFromSpec(reply id, SpecReply object) -- emitted when a reply comes from the remote Spec
+    replyArrived(reply id, SpecReply object) -- emitted when a reply comes from the remote Spec
     error(error code) -- emitted when an error event is received from the remote Spec
     """
     def __init__(self, host, specname, thread_update):
@@ -170,9 +170,11 @@ class _SpecConnection(asyncore.dispatcher):
         #
         # register 'service' channels
         #
+        log.log(2, "creating _SpecConnection. registering some basic channels")
         self.registerChannel('error', self.error, dispatchMode = FIREEVENT)
         self.registerChannel('status/simulate', self.simulationStatusChanged)
 
+        log.log(2, "creating _SpecConnection. registering some basic channels done. calling run()")
         self.run()
 
     def get_host(self):
@@ -656,7 +658,7 @@ class _SpecConnection(asyncore.dispatcher):
         self.output_strings = [ out_buffer[sent:] ]
 
 
-    def send_msg_cmd_with_return(self, cmd):
+    def send_msg_cmd_with_return(self, cmd, caller=None):
         """Send a command message to the remote Spec server, and return the reply id.
 
         Arguments:
@@ -665,10 +667,13 @@ class _SpecConnection(asyncore.dispatcher):
         if not self.is_connected():
             raise SpecClientNotConnectedError
 
-        try:
-            caller = sys._getframe(1).f_locals['self']
-        except KeyError:
-            caller = None
+        if not caller:
+            try:
+                caller = sys._getframe(1).f_locals['self']
+            except KeyError:
+                log.log(2, "caller not identified")
+                caller = None
+        log.log(2, "executing command. reply to be informed to %s" % str(caller))
 
         reply, msg = SpecMessage.msg_cmd_with_return(cmd, version = self.server_version)
         reply_id = self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
@@ -685,7 +690,7 @@ class _SpecConnection(asyncore.dispatcher):
             time.sleep(0.02)
         return reply.get_data()
 
-    def send_msg_func_with_return(self, cmd):
+    def send_msg_func_with_return(self, cmd, caller=None):
         """Send a command message to the remote Spec server using the new 'func' feature, and return the reply id.
 
         Arguments:
@@ -697,10 +702,12 @@ class _SpecConnection(asyncore.dispatcher):
         if not self.is_connected():
             raise SpecClientNotConnectedError
 
-        try:
-            caller = sys._getframe(1).f_locals['self']
-        except KeyError:
-            caller = None
+        if caller is None:
+            try:
+                caller = sys._getframe(1).f_locals['self']
+            except KeyError:
+                caller = None
+        log.log(2, "executing command. reply to be informed to %s" % str(caller))
 
         reply, msg = SpecMessage.msg_func_with_return(cmd, version = self.server_version)
         return self.__send_msg_with_reply(reply, msg, receiver_obj = caller)
@@ -822,7 +829,7 @@ class _SpecConnection(asyncore.dispatcher):
 
         if hasattr(receiver_obj, 'replyArrived'):
             log.log(2, "connecting future reply with object: %s" % type(receiver_obj))
-            SpecEventsDispatcher.connect(reply, 'replyFromSpec', receiver_obj.replyArrived)
+            SpecEventsDispatcher.connect(reply, 'replyArrived', receiver_obj.replyArrived)
 
         self.sendq.insert(0, msg)
 

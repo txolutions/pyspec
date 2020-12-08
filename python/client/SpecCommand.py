@@ -113,12 +113,14 @@ class SpecCommand(object):
         reply_id = conn_cmd(command)
 
         if self.synchronous:
+            log.log(2, "synchronous command waiting for reply")
             self.wait()
             return self.retvalue
         else:
             return reply_id
 
     def replyArrived(self, reply):
+        log.log(2, "reply arrived for command")
         self.reply_pending = False
         self.retvalue = reply.get_data()
 
@@ -143,6 +145,7 @@ class SpecCommand(object):
             elapsed = time.time() - start_wait
             if elapsed > self.timeout:
                 raise SpecClientTimeoutError("timeout waiting for command execution")
+            SpecEventsDispatcher.dispatch()
             time.sleep(0.02)
 
     def abort(self):

@@ -24,7 +24,7 @@ class SpecReply(object):
     Represent a reply received from a remote Spec server
 
     Signals:
-    replyFromSpec(self) -- emitted on update
+    replyArrived(self) -- emitted on update
     """
     def __init__(self):
         """Constructor."""
@@ -42,8 +42,8 @@ class SpecReply(object):
         self.error_code = error_code
 
         self.pending = False
-        log.log(2, "emitting replyFromSpec")
-        SpecEventsDispatcher.emit(self, 'replyFromSpec', (self, ))
+        log.log(2, "emitting replyArrived")
+        SpecEventsDispatcher.emit(self, 'replyArrived', (self, ))
 
     def is_pending(self):
         return self.pending
