@@ -70,10 +70,10 @@ try:
     from VERSION import getVersion
     __version__ = getVersion()
 except:
-    __version__ = '1.1.7'
+    __version__ = '1.1.9'
 
 setup(name='certif_pyspec',
-	version=__version__,
+	version= __version__,
 	description='Python SPEC modules and tools',
         download_url='https://pypi.org/projects/certif-pyspec/',
         long_description=long_description,
