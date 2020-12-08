@@ -66,11 +66,11 @@ datashm_ext = Extension('pyspec/datashm',
                     include_dirs = [datashm_dir],
                     sources = datashm_sources,)
 
-try:
-    from VERSION import getVersion
-    __version__ = getVersion()
-except:
-    __version__ = '1.1.9'
+#try:
+from VERSION import getVersion
+__version__ = getVersion()
+#except:
+    #__version__ = '1.1.10'
 
 setup(name='certif_pyspec',
 	version= __version__,
