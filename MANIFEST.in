@@ -1,1 +1,2 @@
 include pyspec/datashm/*h
+include VERSION.py

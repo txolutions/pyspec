@@ -3,7 +3,7 @@
 #  "pyspec" Release %R%
 #
 
-from pyspec.client.SpecConnection import SpecConnection
+from pyspec.client.SpecConnection import QSpecConnection
 from pyspec.graphics.QVariant import *
 from pyspec.css_logger import log, addStdOutHandler
 
@@ -31,17 +31,17 @@ class StatusWidget(QWidget):
 
         self._update_status()
 
-        self.conn = SpecConnection(specname)
+        self.conn = QSpecConnection(specname)
 
-        #self.timer = QTimer()
-        #self.timer.timeout.connect(self.poll)
-        #self.timer.start(10)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.poll)
+        self.timer.start(10)
 
         self.conn.connect_event('connected', self.server_connected)
         self.conn.connect_event('disconnected', self.server_disconnected)
 
     def poll(self,timeout=0.01):
-        self.conn.update()
+        self.conn.update_events()
 
     def abort_cmd(self):
         self.conn.abort()

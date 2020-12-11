@@ -84,4 +84,9 @@ def addFileHandler(filename):
     fileh.setFormatter(log_formatter)
     log.addHandler(fileh)
 
+def log_exception():
+    import traceback 
+    log = CSSLogger("pyspec")
+    log.log(2, traceback.format_exc())
+
 log = CSSLogger("pyspec")

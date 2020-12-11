@@ -13,7 +13,7 @@ except ImportError:
    import Queue as queue
 
 import saferef 
-from pyspec.css_logger import log
+from pyspec.css_logger import log, log_exception
 
 DEBUG=4  # debug level for this module
 
@@ -254,7 +254,11 @@ def dispatch(max_time_in_s=1):
             import traceback
             log.log(1, traceback.format_exc())
         else:
-            receiver(args)
+            try:
+                receiver(args)
+            except:
+                log_exception()
+
             if max_time_in_s < 0:
               continue
             elif (time.time()-t0) >= max_time_in_s:
