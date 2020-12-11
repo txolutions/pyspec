@@ -15,7 +15,7 @@ THREAD, GEVENT = 0,1
 from pyspec.css_logger import log
 
 class spec_updater(object):
-    default_update_time = 10 # millisecs
+    default_update_time = 5 # millisecs
 
     def __init__(self, method=THREAD, update_func=None, update_time=None): 
 
@@ -45,11 +45,13 @@ class spec_updater(object):
         self.update_time = update_time is None and \
                               self.default_update_time or update_time
         self.update_time /= 1000.0 # in seconds
+        log.log(2, " starting spec updater. update time is %s" % self.update_time)
+
 
         # minimum 10 milliseconds update cycle time
-        if self.update_time < 0.01:
+        if self.update_time < 0.005:
             log.log(2, "update time of %s secs too short. using 0.01")
-            self.update_time = 0.01
+            self.update_time = 0.005
 
     def _update(self):
         asyncore.loop(timeout=1, count=1)

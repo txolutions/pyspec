@@ -170,11 +170,8 @@ class _SpecConnection(asyncore.dispatcher):
         #
         # register 'service' channels
         #
-        log.log(2, "creating _SpecConnection. registering some basic channels")
         self.registerChannel('error', self.error, dispatchMode = FIREEVENT)
         self.registerChannel('status/simulate', self.simulationStatusChanged)
-
-        log.log(2, "creating _SpecConnection. registering some basic channels done. calling run()")
         self.run()
 
     def get_host(self):
@@ -413,11 +410,15 @@ class _SpecConnection(asyncore.dispatcher):
     def name(self):
         return self.get_name()
 
-    def __getattr__(self, name):
-        if name in self.get_motors().keys():
-            return self.get_motor(name)
-        else:
-            raise AttributeError(name)
+    def __nonzero__(self):
+        return True
+
+    #def __getattr__(self, name):
+    #    log.log(2, "getting %s from spec connection" % name)
+    ##    if name in self.get_motors().keys():
+    #        return self.get_motor(name)
+    #    else:
+    #        raise AttributeError(name)
 
     def get_channel(self, chan_name):
         """Return a channel object
