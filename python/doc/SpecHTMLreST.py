@@ -110,8 +110,9 @@ class SpecHTMLTranslator(HTMLTranslator):
       HTMLTranslator.depart_section(self,node)
 
    def depart_table(self, node):
-       pass
-       # print "end table"
+       if len(self.context):
+           self.compact_p = self.context.pop()
+       self.body.append("</table>\n")
 
    def visit_reference(self,node):
        HTMLTranslator.visit_reference(self,node)
@@ -202,7 +203,10 @@ class SpecHTMLTranslator(HTMLTranslator):
    def process_Text(self, text):
        retstr = text
 
-       # reserve escaped asterisks
+       # reserve escaped backlashes (in text as \\)
+       retstr = re.sub("\\\\\\\\","&7&", retstr)
+
+       # reserve escaped asterisks (in text as \*)
        retstr = re.sub("\\\\\*", "@=@", retstr)
 
        retstr = self.restro.sub("<b>\g<emph></b>",retstr )
@@ -210,6 +214,9 @@ class SpecHTMLTranslator(HTMLTranslator):
 
        # restore escaped asterisks as normal asterisks
        retstr = re.sub("@=@", "*", retstr)
+
+       # restore escaped backslashes as normal backslashes
+       retstr = re.sub("&7&", "\\\\",  retstr)
 
        return retstr
 
