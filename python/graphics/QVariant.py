@@ -151,15 +151,17 @@ def check():
     if compat:
         from subprocess import Popen, PIPE
 
-        if sys.version_info[0] == 2:
+        if sys.version_info[0] == 3:
+            py_exec = 'python3'
+        elif sys.version_info[1] > 6:
             py_exec = 'python2'
         else:
-            py_exec = 'python3'
+            py_exec = 'python'
 
         from pyspec import _pyspec_dir
         inst_path = os.path.join(_pyspec_dir,'..') 
-        shell_command  = "{} -c".format(py_exec)
-        shell_command += " 'import sys;sys.path.append(\"{}\");".format(inst_path)
+        shell_command  = "%s -c" % py_exec
+        shell_command += " 'import sys;sys.path.append(\"%s\");" % inst_path
         shell_command += " from pyspec.graphics.QVariant import QApplication; app=QApplication([])'"
         proc = Popen(shell_command, shell=True, stdout=PIPE, stderr=PIPE)
         out, err = proc.communicate()
@@ -319,10 +321,11 @@ if __name__ == '__main__':
 else:
     if (not check_compatible()):
         print_selection()
+        progname=os.path.basename(sys.argv[0])
         print( """
-{progname} needs graphical libraries installed in your system.
+%s needs graphical libraries installed in your system.
 
-{progname} can run in the following environment:
+%s can run in the following environment:
    - matplotlib version 1.4.1 or later together with PyQt5
    - matplotlib version 1.1 or later together with PySide 
    - matplotlib version 0.99 or later together with PyQt4 
@@ -331,5 +334,5 @@ else:
 No compatible installation was found.
 
 Make sure compatible graphical libraries are installed in your system.
-""").format( progname=os.path.basename(sys.argv[0]) )
+""" % (progname, progname))
         raise ImportError
