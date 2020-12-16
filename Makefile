@@ -73,7 +73,7 @@ TOOLS = specfile roi_selector
 
 TOOLS_PY = specfile.py roi_selector.py
 
-PY_SRC = css_logger.py utils.py __init__.py
+PY_SRC = css_logger.py utils.py ordereddict.py __init__.py
 
 MODULES = datashm.so 
 
