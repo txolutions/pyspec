@@ -43,6 +43,12 @@ ifneq (, $(shell which python2 2>/dev/null))
        override PY2="python2"
 endif
 
+ifndef PY2
+  ifneq (, $(shell which python 2>/dev/null))
+        override PY2="python"
+  endif
+endif
+
 OWNER := $(shell grep -s owner= ../install_data | sed 's/owner=//')
 SPECD := $(shell grep -s aux= ../install_data | sed 's/aux=//')
 
