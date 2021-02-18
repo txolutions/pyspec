@@ -1,5 +1,5 @@
-# @(#)ordereddict.py	6.2  12/16/20 CSS
-# "pyspec" Release 6
+# %W%  %G% CSS
+# "pyspec" Release %R%
 #
 # Copyright (c) 2009 Raymond Hettinger
 #
