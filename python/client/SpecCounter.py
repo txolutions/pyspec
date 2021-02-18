@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)SpecCounter.py	3.3  05/11/20 CSS
+#  "pyspec" Release 3
 #
 """SpecCounter module
 

@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)__init__.py	3.4  12/13/20 CSS
+#  "pyspec" Release 3
 #
 #  
 

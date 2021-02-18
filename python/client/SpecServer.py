@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)SpecServer.py	3.5  12/13/20 CSS
+#  "pyspec" Release 3
 #
 
 import re
@@ -264,12 +264,13 @@ class SpecHandler(asyncore.dispatcher):
 class SpecServer(asyncore.dispatcher):
 
     def __init__(self, host=None, name=None, allow_name_change=True, 
-            handler=SpecHandler):
+            handler=SpecHandler, auto_update=True):
 
         asyncore.dispatcher.__init__(self)
 
         self.handler_class = handler
         self.updater = None
+        self.auto_update = auto_update
         self.last_print = time.time()
 
         if host is None:
@@ -429,15 +430,15 @@ Public commands are:
                 update_func=self._update)
 
         log.log(2, "starting spec server with name: %s" % self.name)
-        self.updater.start() 
+        if self.auto_update:
+            self.updater.start() 
 
     def _update(self):
-
         asyncore.loop(timeout=1,count=1)
 
-        if time.time() - self.last_log_print > self.log_period:
-            log.log(4, "command server is running")
-            self.last_log_print = time.time()
+        #if time.time() - self.last_log_print > self.log_period:
+        #    log.log(4, "command server is running")
+        #    self.last_log_print = time.time()
 
     def is_running(self):
         if self.updater is None:

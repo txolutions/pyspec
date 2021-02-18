@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)spec.py	6.4  10/30/20 CSS
 #
-#  "pyspec" Release %R%
+#  "pyspec" Release 6
 #
 #  Copyright (c) 2013,2014,2015,2016,2017,2018,2019,2020
 #  by Certified Scientific Software.

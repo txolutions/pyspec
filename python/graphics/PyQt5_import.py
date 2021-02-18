@@ -1,8 +1,8 @@
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)PyQt5_import.py	3.9  12/13/20 CSS
 #
-#  "pyspec" Release %R%
+#  "pyspec" Release 3
 #
 #  Copyright (c) 2013,2014,2015,2016,2017,2019,2020
 #  by Certified Scientific Software.
@@ -49,7 +49,7 @@ try:
         QMenu, QAction, QTabBar, QStackedWidget,  QFileDialog,  \
         QScrollArea, QProgressBar, QStyleOptionSlider, QGroupBox,  \
         QAbstractItemView, QSizePolicy, QFrame, QStyle, QScrollBar, QToolBar, \
-        QDialogButtonBox, QToolButton, QCheckBox, QLayout
+        QDialogButtonBox, QToolButton, QCheckBox, QLayout, QInputDialog
 
     from PyQt5.QtGui import QFont, QIcon, QFontMetrics, QPen, QColor, QPainter, \
         QPixmap, QBrush, QPainterPath , QDesktopServices 

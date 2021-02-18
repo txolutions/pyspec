@@ -1,8 +1,8 @@
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)utils.py	6.3  12/13/20 CSS
 #
-#  "pyspec" Release %R%
+#  "pyspec" Release 6
 #
 #  Copyright (c) 2017,2020
 #  by Certified Scientific Software.

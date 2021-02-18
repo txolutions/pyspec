@@ -1,3 +1,8 @@
+#
+#  @(#)example_calc_server.py	6.1  12/13/20 CSS
+#  "pyspec" Release 6
+#
+
 """
 
 This is a simple python server that can be called from spec 

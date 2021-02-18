@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)SpecArray.py	3.4  05/11/20 CSS
+#  "pyspec" Release 3
 #
 
 from pyspec.css_logger import log

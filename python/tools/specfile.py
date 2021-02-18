@@ -2,9 +2,9 @@
 
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)specfile.py	3.3  05/11/20 CSS
 #
-#  "pyspec" Release %R%
+#  "pyspec" Release 3
 #
 #  Copyright (c) 2013,2014,2015,2016,2018,2020
 #  by Certified Scientific Software.

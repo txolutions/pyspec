@@ -3,8 +3,8 @@
 # -*- coding: utf-8 -*-
 # tifffile.py
 #
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)tiff.py	6.1  05/11/20 CSS
+#  "pyspec" Release 6
 #
 # Copyright (c) 2008-2016, Christoph Gohlke
 # Copyright (c) 2008-2016, The Regents of the University of California

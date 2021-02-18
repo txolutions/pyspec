@@ -1,6 +1,6 @@
 #
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)example_qt_command.py	6.2  12/13/20 CSS
+#  "pyspec" Release 6
 #
 
 from pyspec.client import command

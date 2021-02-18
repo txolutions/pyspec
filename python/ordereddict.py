@@ -1,3 +1,6 @@
+# @(#)ordereddict.py	6.2  12/16/20 CSS
+# "pyspec" Release 6
+#
 # Copyright (c) 2009 Raymond Hettinger
 #
 # Permission is hereby granted, free of charge, to any person

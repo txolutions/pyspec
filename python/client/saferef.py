@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)saferef.py	3.5  07/30/20 CSS
+#  "pyspec" Release 3
 #
 # extracted from Louie, http://pylouie.org/
 # updated for Python 3
