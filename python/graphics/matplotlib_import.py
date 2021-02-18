@@ -1,8 +1,8 @@
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)matplotlib_import.py	3.8  05/11/20 CSS
 #
-#  "pyspec" Release %R%
+#  "pyspec" Release 3
 #
 #  Copyright (c) 2016,2017,2018,2020
 #  by Certified Scientific Software.

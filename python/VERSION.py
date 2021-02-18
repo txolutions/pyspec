@@ -1,8 +1,8 @@
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)VERSION.py	6.4  12/16/20 CSS
 #
-#  "pyspec" Release %R%
+#  "pyspec" Release 6
 #
 #  Copyright (c) 2013,2014,2015,2016,2020
 #  by Certified Scientific Software.
@@ -34,7 +34,7 @@
 #
 #******************************************************************************
 
-version = "1.1.12-2-g3e8e3f"
+version = "1.1.14"
 
 def getVersion():
     global version

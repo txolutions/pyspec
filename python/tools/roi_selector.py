@@ -2,9 +2,9 @@
 #
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)roi_selector.py	6.2  10/01/20 CSS
 #
-#  "pyspec" Release %R%
+#  "pyspec" Release 6
 #
 #  Copyright (c) 2020
 #  by Certified Scientific Software.

@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)SpecCommand.py	3.5  12/13/20 CSS
+#  "pyspec" Release 3
 #
 """SpecCommand module
 .

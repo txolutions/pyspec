@@ -1,6 +1,6 @@
 #
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)graphics_rc.py	6.1  05/11/20 CSS
+#  "pyspec" Release 6
 #
 
 import sys

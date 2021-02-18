@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)SpecChannel.py	3.5  12/13/20 CSS
+#  "pyspec" Release 3
 #
 #$Id: SpecChannel.py,v 1.6 2006/12/14 10:03:13 guijarro Exp $
 """SpecChannel module

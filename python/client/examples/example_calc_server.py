@@ -1,6 +1,6 @@
 #
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)example_calc_server.py	6.1  12/13/20 CSS
+#  "pyspec" Release 6
 #
 
 """

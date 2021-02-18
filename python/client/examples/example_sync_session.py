@@ -1,6 +1,6 @@
 #
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)example_sync_session.py	6.1  12/13/20 CSS
+#  "pyspec" Release 6
 #
 #
 # Example of a synchronous python session

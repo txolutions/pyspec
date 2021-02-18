@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)SpecReply.py	3.4  12/13/20 CSS
+#  "pyspec" Release 3
 #
 #$Id: SpecReply.py,v 1.1 2004/08/23 11:16:09 guijarro Exp $
 """SpecReply module

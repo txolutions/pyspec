@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)SpecClientError.py	3.3  12/13/20 CSS
+#  "pyspec" Release 3
 #
 #
 # Exception class

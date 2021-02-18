@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)SpecEventsDispatcher.py	3.6  12/13/20 CSS
+#  "pyspec" Release 3
 #
 import weakref
 
@@ -241,6 +241,7 @@ def emit(sender, signal, arguments = ()):
 
 def dispatch(max_time_in_s=1):
     t0 = time.time()
+
     while True:
         try:
             if eventsToDispatch.empty():

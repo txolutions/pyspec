@@ -1,5 +1,5 @@
-#  %W%  %G% CSS
-#  "pyspec" Release %R%
+#  @(#)SpecWaitObject.py	3.5  12/13/20 CSS
+#  "pyspec" Release 3
 #
 """SpecWaitObject module
 

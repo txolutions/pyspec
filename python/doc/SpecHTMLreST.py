@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
-#   @(#)SpecHTMLreST.py	6.1  01/23/20 CSS
+#   @(#)SpecHTMLreST.py	6.5  12/14/20 CSS
 #
 #   "spec" Release 6
 

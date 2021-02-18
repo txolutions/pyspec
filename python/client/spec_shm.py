@@ -1,10 +1,10 @@
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)spec_shm.py	6.1  11/02/20 CSS
 #
-#  "splot" Release %R%
+#  "splot" Release 6
 #
-#  Copyright (c) 2013,2014,2015,2016,2020
+#  Copyright (c) 2020
 #  by Certified Scientific Software.
 #  All rights reserved.
 #
