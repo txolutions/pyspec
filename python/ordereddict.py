@@ -1,3 +1,6 @@
+# %W%  %G% CSS
+# "pyspec" Release %R%
+#
 # Copyright (c) 2009 Raymond Hettinger
 #
 # Permission is hereby granted, free of charge, to any person

@@ -1,8 +1,8 @@
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)QVariant.py	3.12  12/16/20 CSS
 #
-#  "pyspec" Release %R%
+#  "pyspec" Release 3
 #
 #  Copyright (c) 2013,2014,2015,2016,2017,2018,2020
 #  by Certified Scientific Software.
@@ -293,11 +293,11 @@ elif g_rc.mpl_available:
              # if there is still no qt try pyqt5 - pyside - pyqt4 in that order
             from PyQt5_import import *
             if not g_rc.qt_imported:
-                from PySide_import import *
+                from PySide2_import import *
                 if not g_rc.qt_imported:
-                    from PySide2_import import *
+                    from PyQt4_import import * 
                     if not g_rc.qt_imported:
-                        from PyQt4_import import * 
+                        from PySide_import import *
 
     if g_rc.mpl_available:
         # now really import matplotlib with g_rc.qt_imported known

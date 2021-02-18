@@ -1,4 +1,7 @@
-
+#
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
+#
 #
 # Example of a synchronous python session
 #

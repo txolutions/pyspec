@@ -1,3 +1,6 @@
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
+#
 
 import asyncore
 import threading

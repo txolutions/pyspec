@@ -1,3 +1,8 @@
+#
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
+#
+
 """
 
 This is a simple python server that can be called from spec 
