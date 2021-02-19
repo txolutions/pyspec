@@ -63,7 +63,7 @@ class spec_updater(object):
         self.started = True
         self.start_thread()
 
-    def stop(self,timeout=1):
+    def stop(self,timeout=0.3):
         self.started = False
         s0 = time.time()
         try:
@@ -92,9 +92,11 @@ class spec_updater(object):
         self.thread.start() 
 
     def _loop(self):
+        log.log(2, "starting thread loop - update_time is %s" % self.update_time)
         while True:
             try:
                 if not self.started:
+                    log.log(2, "setting thread started to False. quitting")
                     break
                 self.update_func()
                 time.sleep(self.update_time)
