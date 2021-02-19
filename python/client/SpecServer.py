@@ -15,6 +15,11 @@ import SpecMessage as SpecMessage
 
 import spec_updater 
 
+if is_python3():
+    from queue import Queue
+else:
+    from Queue import Queue
+
 class SpecHandler(asyncore.dispatcher):
 
     def __init__(self, request, client_address, server):
@@ -31,6 +36,7 @@ class SpecHandler(asyncore.dispatcher):
         self.client_version = None
         self.client_order = ""
 
+        self.message_queue = Queue()
         self.message = None
 
     # asyncore interface
@@ -52,7 +58,6 @@ class SpecHandler(asyncore.dispatcher):
 
             consumedBytes = 0
             offset = 0
-            received_messages = []
 
             while offset < len(sbuffer):
 
@@ -78,19 +83,22 @@ class SpecHandler(asyncore.dispatcher):
                         self.clientName = self.message.name
                         self.send_hello_reply(self.message.sn, str(self.server.name))
                     else:
-                        received_messages.append(self.message)
+                        self.message_queue.put(self.message)
 
                     self.message = None
 
             self.received_strings = [ s[offset:] ]
 
-            for message in received_messages:
-                if not self.dispatch_message(message):
-                   self.send_error(message.sn, '', 'unsupported command type : %d' % message.cmd)
         except:
             import traceback
             log.log(3,"SpecServer read error. %s" % traceback.format_exc())
             return
+
+    def dispatch_messages(self):
+        while not self.message_queue.empty():
+            message = self.message_queue.get()
+            if not self.dispatch_message(message):
+                self.send_error(message.sn, '', 'unsupported command type : %d' % message.cmd)
 
     def handle_write(self):
         #
@@ -121,7 +129,6 @@ class SpecHandler(asyncore.dispatcher):
     def dispatch_message(self, message):
         try:
             if message.cmd == SpecMessage.CHAN_READ:
-                # temporary code (workaround for a Spec client bug)
                 self.get_and_reply(reply_id=message.sn, channame=message.name)
             elif message.cmd == SpecMessage.CHAN_SEND:
                 self.set_and_reply(reply_id=message.sn, channame=message.name, 
@@ -279,9 +286,6 @@ class SpecServer(asyncore.dispatcher):
             self.host = host  # only needed to select a particular ip in the computer
 
         #
-        self.last_log_print = time.time()
-        self.log_period = 10
-
         self.name = None
         self.allow_name_change = allow_name_change
 
@@ -426,19 +430,16 @@ Public commands are:
            return
 
         # start a thread for automatic update
-        self.updater = spec_updater.spec_updater(method=spec_updater.THREAD, 
+        if self.auto_update:
+            log.log(2, "starting spec server with name: %s" % self.name)
+            self.updater = spec_updater.spec_updater(method=spec_updater.THREAD, 
                 update_func=self._update)
 
-        log.log(2, "starting spec server with name: %s" % self.name)
-        if self.auto_update:
             self.updater.start() 
 
     def _update(self):
-        asyncore.loop(timeout=1,count=1)
-
-        #if time.time() - self.last_log_print > self.log_period:
-        #    log.log(4, "command server is running")
-        #    self.last_log_print = time.time()
+        for client in self.clients:
+            client.dispatch_messages()
 
     def is_running(self):
         if self.updater is None:
