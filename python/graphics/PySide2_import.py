@@ -1,10 +1,10 @@
 #******************************************************************************
 #
-#  @(#)PySide2_import.py	3.8  12/13/20 CSS
+#  %W%  %G% CSS
 #
-#  "pyspec" Release 3
+#  "pyspec" Release %R%
 #
-#  Copyright (c) 2013,2014,2015,2016,2017,2018,2019,2020
+#  Copyright (c) 2013,2014,2015,2016,2017,2018,2019,2020,2021
 #  by Certified Scientific Software.
 #  All rights reserved.
 #

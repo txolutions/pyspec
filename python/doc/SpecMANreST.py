@@ -1,9 +1,9 @@
 #!/usr/bin/env python3 
 # -*- coding: utf-8 -*-
 #
-#   @(#)SpecMANreST.py	6.13  05/11/20 CSS
+#  %W%  %G% CSS
 #
-#   "spec" Release 6
+#  "pyspec" Release %R%
 
 """
 A minimal front end to the Docutils Publisher, producing HTML.

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 #
-#   @(#)SpecHTMLreST.py	6.5  12/14/20 CSS
+#  %W%  %G% CSS
 #
-#   "spec" Release 6
+#  "pyspec" Release %R%
 
 #%.src: rst/%.rst
 #        rst2html.py --template=page.tpl $(RSTFLAGS) $< $@

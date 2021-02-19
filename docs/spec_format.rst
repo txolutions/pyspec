@@ -2,7 +2,7 @@
 ..
 ..  "pyspec" Release %R%
 ..
-..  Copyright (c) 2013,2014,2015,2016,2020
+..  Copyright (c) 2013,2014,2015,2016,2020,2021
 ..  by Certified Scientific Software.
 ..
 .. versioninfo: "spec_format" "**pyspec** Documentation" "%G%" "%M% %I%  %G% CSS"
