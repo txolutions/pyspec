@@ -134,7 +134,17 @@ class SpecHandler(asyncore.dispatcher):
                 self.set_and_reply(reply_id=message.sn, channame=message.name, 
                         value=message.data)
             elif message.cmd in (SpecMessage.CMD_WITH_RETURN, SpecMessage.FUNC_WITH_RETURN):
-                self.run_and_reply(reply_id=message.sn, cmd=message.data)
+                cmdstr = message.data
+                cmds = cmdstr.split(";")
+                for cmdno in range(len(cmds)):
+                    cmd = cmds[cmdno]
+                    try:
+                        if cmdno == len(cmds)-1:
+                            self.run_and_reply(reply_id=message.sn, cmd=cmd)
+                        else:
+                            self.run_no_reply(cmd=cmd)
+                    except:
+                        log.log(2, "cannot run command %s" % message.data)
             elif message.cmd == SpecMessage.FUNC_WITH_RETURN:
                 self.run_and_reply(reply_id=message.sn, cmd=message.data)
             elif message.cmd == SpecMessage.CMD:
@@ -142,7 +152,7 @@ class SpecHandler(asyncore.dispatcher):
                 cmdstr = message.data
                 cmds = cmdstr.split(";")
                 for cmd in cmds:
-                    self.run_and_reply(reply_id=message.sn, cmd=cmd)
+                    self.run_no_reply(cmd=cmd)
             elif message.cmd == SpecMessage.REGISTER:
                 if message.name == 'update':
                     log.log(3,"update channel registered !")
@@ -176,6 +186,34 @@ class SpecHandler(asyncore.dispatcher):
             self.send_error(reply_id, '', 'cannot set channel ' + channame)
         else:
             self.send_reply(reply_id, '', ret)
+
+    def run_no_reply(self, cmd = '', *args):
+        if len(cmd) == 0:
+            return
+
+        if len(args) == 0:
+            cmdstr = str(cmd)
+            command, args = self.parse_command(cmdstr)
+        else:
+            command = cmd
+
+        func = None
+
+        if command in self.server.commands:
+            func = self.server.commands[ command ][0]
+        elif hasattr(self, command):
+            func = getattr(self, command)
+        elif hasattr(self.server, command):
+            func = getattr(self.server, command)
+        else:
+            return
+
+        if callable(func):
+            try:
+                ret = func(*args)
+            except:
+                import traceback
+                traceback.print_exc()
 
     def run_and_reply(self, reply_id = None, cmd = '', *args):
 
