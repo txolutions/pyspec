@@ -105,7 +105,7 @@ PYDOC_SRC = __init__.py spec_help.tpl SpecHTMLreST.py SpecMANreST.py
 
 DATASHM_SRC = datashm_py.c setup.py README
 
-DOCS_SRC = installation.rst spec_format.rst 
+# DOCS_SRC = installation.rst spec_format.rst 
 
 DIRS = docs tools python python/datashm \
 	python/client python/client/examples python/hardware \
@@ -208,7 +208,6 @@ untar:
 list:
 	-@rm -f ,list; ( \
 	  for i in ${SRC}; do echo $$i; done; \
-	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo python/datashm/$$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
 	  for i in ${PY_SRC}; do echo python/$$i; done; \
@@ -221,9 +220,10 @@ list:
 	  for i in ${PYDOC_SRC}; do echo python/doc/$$i; done; \
 	 ) > ,list
 
+# for i in ${DOCS_SRC}; do echo docs/$$i; done; \
+
 distlist:
 	-@rm -f ,distlist; ( \
-	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
 	  for i in ${DIST_SRC}; do echo $$i; done; \
 	  for i in ${MODULES}; do echo python/client/$$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
@@ -239,7 +239,6 @@ distlist:
 tarball:
 	@rm -f pyspec_src.tar.gz; ${TAR} cf - ${DIST_SRC} `\
 	  for i in ${SRC}; do echo $$i; done; \
-	  for i in ${DOCS_SRC}; do echo docs/$$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo python/datashm/$$i; done; \
 	  for i in ${PY_SRC}; do echo python/$$i; done; \
