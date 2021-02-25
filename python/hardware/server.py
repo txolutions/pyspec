@@ -157,8 +157,8 @@ class CommandHandler(asyncore.dispatcher):
         self.writebuf += outstr
 
     def send_data(self,strdata):
-        log.log(1,"sending data") 
-        log.log(1," strdata is %s" % type(strdata))
+        log.log(4,"sending data") 
+        log.log(4," strdata is %s" % type(strdata))
         self.sending_data = True
         self.databuf = strdata
 
@@ -223,7 +223,7 @@ class CommandHandler(asyncore.dispatcher):
                     log.log(3, "cmdno: %s - already handled. Ignored", cmdno)
                     continue
                 else:
-                    log.log(3, "cmdno: %s - new command:  [\"%s\"]", cmdno, cmd)
+                    log.log(4, "cmdno: %s - new command:  [\"%s\"]", cmdno, cmd)
                     self.pending_commands.append( Command(cmdno, cmd) )
                     self.last_cmdno = cmdno
 
@@ -236,16 +236,16 @@ class CommandHandler(asyncore.dispatcher):
                 sent = self.send( self.writebuf )
 
             self.writebuf = self.writebuf[sent:]
-            log.log(3, "%s values sent. %s remain.", sent,len(self.writebuf))
+            log.log(4, "%s values sent. %s remain.", sent,len(self.writebuf))
 
         if self.sending_data:  # data is always sent raw / as bytes
-            log.log(1, "sending data")
+            log.log(4, "sending data")
             sent = self.send( self.databuf )
             self.databuf = self.databuf[sent:]
             if self.databuf:
-                log.log(1, "%s values sent. %s remain.", sent,len(self.databuf))
+                log.log(4, "%s values sent. %s remain.", sent,len(self.databuf))
             else:
-                log.log(1,"all data sent")
+                log.log(4,"all data sent")
                 self.sending_data = False
 
     def handle_close(self):
@@ -572,7 +572,7 @@ Check documentation for writing your own server
         args = cmd.get_args()
         addr = cmd.get_address()
 
-        log.log(2, "Executing command %s with args %s", cmdname, str(args))
+        log.log(4, "Executing command %s with args %s", cmdname, str(args))
 
         if cmdname not in self.server_commands:
             log.log(1, "Unsupported command %s", cmdname )
@@ -645,7 +645,7 @@ Check documentation for writing your own server
 
             if cmd is not None:
                 response = self.handle_cmd(cmd) 
-                log.log(3, "cmdno: %s - response is:  %s", cmd.cmdno, str(response))
+                log.log(4, "cmdno: %s - response is:  %s", cmd.cmdno, str(response))
                 if type(response) in (list,tuple):
                     response, err = response
                 else:
@@ -926,7 +926,7 @@ Check documentation for writing your own server
         log.log(3,"packing data. %s values. type is %s. fmt: %s", len(data_list), self.dtype, fmt)
         data_str = struct.pack(fmt, *data_list) 
 
-        log.log(3, "length of string is %s", len(data_str))
+        log.log(4, "length of string is %s", len(data_str))
         return data_str
 
     def unpack_data(self, data_str):
