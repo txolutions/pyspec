@@ -16,6 +16,7 @@ except:
 THREAD, GEVENT = 0,1
 
 from pyspec.css_logger import log
+from pyspec.utils import async_loop
 
 class spec_updater(object):
     default_update_time = 5 # millisecs
@@ -57,7 +58,8 @@ class spec_updater(object):
             self.update_time = 0.005
 
     def _update(self):
-        asyncore.loop(timeout=1, count=1)
+        # asyncore.loop(timeout=1, count=1)
+        async_loop(timeout=1, count=1)
 
     def start(self):
         self.started = True

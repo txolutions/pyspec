@@ -9,10 +9,10 @@ import asyncore
 
 from pyspec.utils import is_python3
 from pyspec.css_logger import log
+from pyspec.utils import async_loop
 
 from SpecConnection import MIN_PORT, MAX_PORT
 import SpecMessage as SpecMessage
-
 import spec_updater 
 
 if is_python3():
@@ -135,9 +135,14 @@ class SpecHandler(asyncore.dispatcher):
                         value=message.data)
             elif message.cmd in (SpecMessage.CMD_WITH_RETURN, SpecMessage.FUNC_WITH_RETURN):
                 cmdstr = message.data
-                cmds = cmdstr.split(";")
+                cmds = []
+                for cmd in cmdstr.split(";"):
+                    if cmd.strip():
+                        cmds.append(cmd)
+                
                 for cmdno in range(len(cmds)):
                     cmd = cmds[cmdno]
+
                     try:
                         if cmdno == len(cmds)-1:
                             self.run_and_reply(reply_id=message.sn, cmd=cmd)
@@ -455,6 +460,7 @@ Public commands are:
         else:
             conn.setblocking(0)
             self.clients.append(self.handler_class(conn, addr, self))
+            log.log(2, "new client connection addr is %s" % repr(addr))
 
     def get_info(self):
         return {'running': self.is_running(), 
@@ -488,7 +494,8 @@ Public commands are:
         self.updater.stop() 
 
     def serve_forever(self):
-        asyncore.loop()
+        #asyncore.loop()
+        async_loop()
 
 if __name__ == "__main__":
     import sys

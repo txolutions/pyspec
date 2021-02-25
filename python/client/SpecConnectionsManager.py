@@ -31,6 +31,7 @@ import SpecConnection as SpecConnection
 import SpecEventsDispatcher as SpecEventsDispatcher
 
 from pyspec.css_logger import log
+from pyspec.utils import async_loop
 
 _SpecConnectionsManagerInstance = None #keep a reference to the Singleton instance
 
@@ -102,13 +103,15 @@ class _ThreadedSpecConnectionsManager(threading.Thread):
                 self.lock.release()
 
             if len(self.connectionDispatchers) > 0:
-                asyncore.loop(0.01, False, None, 1)
+                # asyncore.loop(timeout=0.01, count=1)
+                async_loop(timeout=0.01, count=1)
                 if self.doEventsDispatching:
                   SpecEventsDispatcher.dispatch()
             else:
                 time.sleep(0.01)
 
-        asyncore.loop(0.01, False, None, 1)
+        # asyncore.loop(0.01, False, None, 1)
+        async_loop(timeout=0.01, count=1)
 
 
     def stop(self):
@@ -205,7 +208,8 @@ class _SpecConnectionsManager:
         """Poll the asynchronous socket connections and dispatch incomming events"""
         fd = self.getFdDispatchersDict()
         if -1 not in fd:
-            asyncore.loop(timeout, False, fd, 1)
+            # asyncore.loop(timeout, False, fd, 1)
+            async_loop(timeout=timeout, count=1)
         else:
             pass
 
