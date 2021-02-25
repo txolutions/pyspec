@@ -469,7 +469,7 @@ class DEigerClient(object):
                 else:
                     ret_value = str(ret_value)
                 self.cmd_answer[cmd_name] = ret_value
-                log.log(2,"command %s finished execution. answer is: %s" % (cmd_name, ret_value))
+                log.log(4,"command %s finished execution. answer is: %s" % (cmd_name, ret_value))
             except BaseException as e:
                 log.log(1,"error update command: %s" % str(e))
 
