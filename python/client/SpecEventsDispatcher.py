@@ -1,5 +1,5 @@
-#  @(#)SpecEventsDispatcher.py	3.6  12/13/20 CSS
-#  "pyspec" Release 3
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
 #
 import weakref
 
