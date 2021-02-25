@@ -25,6 +25,7 @@ import time
 
 from pyspec.css_logger import log
 from pyspec.utils import is_python3, is_remote_host
+from pyspec.utils import async_loop
 
 from SpecEventsDispatcher import UPDATEVALUE, FIREEVENT
 
@@ -211,7 +212,7 @@ class _SpecConnection(asyncore.dispatcher):
         try:
             self.check_connection()
             if asyncore.socket_map:
-                asyncore.loop(timeout=0.01, count=1)
+                async_loop(timeout=0.01, count=1)
 
             if self.thread_update:
                 self.update_events()

@@ -1,6 +1,6 @@
 #******************************************************************************
 #
-#  %W%  %G% CSS
+#  @(#)QVariant.py	3.15  02/18/21 CSS
 #
 #  "pyspec" Release %R%
 #
@@ -46,15 +46,17 @@
 #       The following flags are recognided if provided in the command line
 #         --pyside
 #         --pyside2
+#         --pyside6
 #         --pyqt4
 #         --pyqt5
+#         --pyqt6
 #         --matplotlib
 #         --qwt
 #
 #   2.  QT_API  and GRAPH_LIB environment variables
 #         If no flag is provided, the module will check the QT_API
 #         environment variable for one of the following values
-#            'pyside', 'pyside2', 'pyqt4', 'pyqt5'
+#            'pyside', 'pyside6', 'pyside2', 'pyqt4', 'pyqt5', 'pyqt6'
 #
 #         If no flag for graphics is provided, the module will check the GRAPH_API
 #         environment variable for one of the following values
@@ -85,11 +87,17 @@ if '--pyside' in sys.argv:
 elif '--pyside2' in sys.argv:
     g_rc.qt_variant = 'PySide2'
     cmdline = True
+elif '--pyside6' in sys.argv:
+    g_rc.qt_variant = 'PySide6'
+    cmdline = True
 elif '--pyqt4' in sys.argv:
     g_rc.qt_variant = 'PyQt4'
     cmdline = True
 elif '--pyqt5' in sys.argv:
     g_rc.qt_variant = 'PyQt5'
+    cmdline = True
+elif '--pyqt6' in sys.argv:
+    g_rc.qt_variant = 'PyQt6'
     cmdline = True
 elif env_api is not None:
     if env_api.lower() == 'pyside':
@@ -98,11 +106,17 @@ elif env_api is not None:
     elif env_api.lower() == 'pyside2':
         g_rc.qt_variant = 'PySide2'
         varset = True
+    elif env_api.lower() == 'pyside6':
+        g_rc.qt_variant = 'PySide6'
+        varset = True
     elif env_api.lower() == 'pyqt4':
         g_rc.qt_variant = 'PyQt4'
         varset = True
     elif env_api.lower() == 'pyqt5':
         g_rc.qt_variant = 'PyQt5'
+        varset = True
+    elif env_api.lower() == 'pyqt6':
+        g_rc.qt_variant = 'PyQt6'
         varset = True
     else:
         varset = None
@@ -130,9 +144,13 @@ def check_compatible():
 
     elif g_rc.mpl_imported:
         if g_rc.qt_imported == False:
+            print("qt is not imported")
             return(False)
         elif g_rc.qt_variant in ["PySide", "PySide2"]:
             if g_rc.mpl_version_no < [1,1,0]:
+                return(False)
+        elif g_rc.qt_variant in ["PyQt6", "PySide6"]:
+            if g_rc.mpl_version_no < [2,0,1]:
                 return(False)
         elif g_rc.qt_variant == "PyQt5":
             if g_rc.mpl_version_no < [1,4,1]:
@@ -205,8 +223,8 @@ def print_selection():
         print("\nINCOMPATIBLE\n")
 
     print("To change the library selection you may want to use:")
-    print("    -    command line options: ['--matplotlib','--qwt','--pyqt4','--pyqt5','--pyside','--pyside2']")
-    print("    -    QT_API env. variable: ['pyqt4','pyside','pyside2', 'pyqt5']")
+    print("    -    command line options: ['--matplotlib','--qwt','--pyqt4','--pyqt5','--pyqt6','--pyside','--pyside2', '--pyside6']")
+    print("    -    QT_API env. variable: ['pyqt4','pyside','pyside2', 'pyside6', 'pyqt5','pyqt6']")
     print("    - GRAPH_LIB env. variable: ['matplotlib','qwt']")
 
 def debug_trace(obj):
@@ -214,7 +232,7 @@ def debug_trace(obj):
 
     import pdb
 
-    if g_rc.qt_variant in ['PyQt4','PyQt5']:
+    if g_rc.qt_variant in ['PyQt4','PyQt5', 'PyQt6']:
        pyqtRemoveInputHook()
 
     pdb.set_trace()
@@ -277,6 +295,10 @@ if g_rc.qwt_imported:
         from PyQt4_import import * 
 elif g_rc.mpl_available:
     # first check what to do if there is a user selection (cmdline or env-variable)
+    if g_rc.qt_variant == "PyQt6": 
+        from PyQt6_import import *
+    if g_rc.qt_variant == "PySide6": 
+        from PySide6_import import *
     if g_rc.qt_variant == "PyQt5": 
         from PyQt5_import import *
     elif g_rc.qt_variant == "PySide": 
@@ -290,14 +312,18 @@ elif g_rc.mpl_available:
         if user_selected:
              print("Could not import selected Qt toolkit %s " % g_rc.qt_variant)
         else:
-             # if there is still no qt try pyqt5 - pyside - pyqt4 in that order
-            from PyQt5_import import *
+             # if there is still no qt try pyqt6 - pyqt5 - pyside2 - pyqt4 in that order
+            from PyQt6_import import *
             if not g_rc.qt_imported:
-                from PySide2_import import *
+                from PySide6_import import *
                 if not g_rc.qt_imported:
-                    from PyQt4_import import * 
+                    from PyQt5_import import *
                     if not g_rc.qt_imported:
-                        from PySide_import import *
+                        from PySide2_import import *
+                        if not g_rc.qt_imported:
+                            from PyQt4_import import * 
+                            if not g_rc.qt_imported:
+                                from PySide_import import *
 
     if g_rc.mpl_available:
         # now really import matplotlib with g_rc.qt_imported known

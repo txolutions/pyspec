@@ -38,6 +38,7 @@ import sys
 import platform
 import os
 import socket
+import asyncore
 
 def is_macos():
     return sys.platform == "darwin" 
@@ -69,6 +70,26 @@ def is_python2():
 
 def is_python3():
     return sys.version_info[0] == 3
+
+
+def async_loop(timeout=0.01, use_poll=False, count=None):
+    """Start asyncore and scheduler loop.
+    Use this as replacement of the original asyncore.loop() function.
+    """
+    if use_poll and hasattr(asyncore.select, 'poll'):
+        poll_sock = asyncore.poll2
+    else:
+        poll_sock = asyncore.poll
+
+    sockmap = asyncore.socket_map
+
+    if count is None:
+        while sockmap:
+            poll_sock(timeout, sockmap)
+    else:
+        while sockmap and count > 0:
+            poll_sock(timeout, sockmap)
+            count -= 1
 
 if __name__ == '__main__':
    print("MacOS: ", is_macos())
