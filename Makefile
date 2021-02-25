@@ -97,6 +97,7 @@ HDW_SRC = __init__.py eigerclient.py server.py
 
 GRAPHICS_SRC = __init__.py graphics_rc.py qwt_import.py matplotlib_import.py \
 	PySide_import.py PyQt4_import.py PyQt5_import.py PySide2_import.py \
+	PySide6_import.py PyQt6_import.py \
 	QVariant.py
 
 FILE_SRC = __init__.py spec.py tiff.py
