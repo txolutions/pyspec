@@ -25,7 +25,7 @@ import time
 
 from pyspec.css_logger import log
 from pyspec.utils import is_python3, is_remote_host
-from pyspec.utils import async_loop
+from pyspec.utils import is_macos, async_loop
 
 from SpecEventsDispatcher import UPDATEVALUE, FIREEVENT
 
@@ -187,9 +187,26 @@ class _SpecConnection(asyncore.dispatcher):
     def __str__(self):
         return '<spec connection: %s (@%s:%s)>' % (self.specname, self.host, self.port)
 
+    def set_ignore_ports(self, ports):
+        self.ignore_ports = ports
+
     def set_socket(self, s):
         self.valid_socket = True
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
+        if is_macos():
+            # macos does not expose this in socket module
+            # values are from netinet/tcp.h
+            TCP_KEEPIDLE = 0x10
+            TCP_KEEPINTVL = 0x101
+        else:
+            TCP_KEEPIDLE = socket.TCP_KEEPIDLE
+            TCP_KEEPINTVL = socket.TCP_KEEPINTVL
+
+        s.setsockopt(socket.IPPROTO_TCP, TCP_KEEPIDLE, 1)
+        s.setsockopt(socket.IPPROTO_TCP, TCP_KEEPINTVL, 2)
         asyncore.dispatcher.set_socket(self, s)
+
 
     # update thread handling
     def is_running(self):
@@ -202,11 +219,12 @@ class _SpecConnection(asyncore.dispatcher):
            return
 
         # start a thread for automatic update
-        self.updater = spec_updater.spec_updater(method=spec_updater.THREAD,
+        if self.thread_update:
+            self.updater = spec_updater.spec_updater(method=spec_updater.THREAD,
                 update_time=UPDATER_TIME,
                 update_func=self._update)
 
-        self.updater.start()
+            self.updater.start()
 
     def _update(self,timeout=0.01):
         try:
@@ -214,8 +232,8 @@ class _SpecConnection(asyncore.dispatcher):
             if asyncore.socket_map:
                 async_loop(timeout=0.01, count=1)
 
-            if self.thread_update:
-                self.update_events()
+            #if self.thread_update:
+            self.update_events()
 
         except Exception as e:
             import traceback
@@ -261,6 +279,11 @@ class _SpecConnection(asyncore.dispatcher):
                     self.port += 1
 
             while not self.scanports or self.port < MAX_PORT:
+
+                if self.port in self.ignore_ports:
+                    self.port += 1
+                    continue
+
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.settimeout(0.2)
                 try:
