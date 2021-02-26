@@ -7,7 +7,7 @@ import time
 import socket
 import asyncore
 
-from pyspec.utils import is_python3
+from pyspec.utils import is_python3, is_macos
 from pyspec.css_logger import log
 from pyspec.utils import async_loop
 
@@ -45,9 +45,18 @@ class SpecHandler(asyncore.dispatcher):
 
     def handle_read(self):
         try:
-            received = self.recv(32768)
-
-            self.received_strings.append(received)
+            try:
+                t0 = time.time()
+                received = self.recv(32768)
+                self.received_strings.append(received)
+            except BlockingIOError as e:
+                elapsed = time.time() - t0
+                log.log(2, "blocking exception occured on socket. chars written. %s. took: %3.3f secs" % (str(e), elapsed))
+                self.received_strings.append(b"blocking socket error")
+            except BaseException as e:
+                elapsed = time.time() - t0
+                log.log(2, "exception while reading socket: %s . took: %3.3f secs" % (str(e), elapsed))
+                self.received_strings.append(b"socket error - %s" % str(e))
 
             if is_python3():
                 s = b''.join(self.received_strings)
@@ -109,12 +118,11 @@ class SpecHandler(asyncore.dispatcher):
 
         try:
             outbuf = b''.join(self.output_strings)
-
             sent = self.send(outbuf)
             self.output_strings = [ outbuf[sent:] ]
         except:
             import traceback
-            log.log(3,"error writing message: %s", traceback.format_exc())
+            log.log(2,"error writing message: %s", traceback.format_exc())
 
     def handle_close(self):
         self.close()
@@ -150,6 +158,7 @@ class SpecHandler(asyncore.dispatcher):
                             self.run_no_reply(cmd=cmd)
                     except:
                         log.log(2, "cannot run command %s" % message.data)
+
             elif message.cmd == SpecMessage.FUNC_WITH_RETURN:
                 self.run_and_reply(reply_id=message.sn, cmd=message.data)
             elif message.cmd == SpecMessage.CMD:
@@ -328,6 +337,8 @@ class SpecServer(asyncore.dispatcher):
         else:
             self.host = host  # only needed to select a particular ip in the computer
 
+        self.port = None
+
         #
         self.name = None
         self.allow_name_change = allow_name_change
@@ -344,6 +355,19 @@ class SpecServer(asyncore.dispatcher):
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
+
+        if is_macos():
+            # macos does not expose this in socket module
+            # values are from netinet/tcp.h
+            TCP_KEEPIDLE = 0x10
+            TCP_KEEPINTVL = 0x101
+        else:
+            TCP_KEEPIDLE = socket.TCP_KEEPIDLE
+            TCP_KEEPINTVL = socket.TCP_KEEPINTVL
+
+        # self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        # self.socket.setsockopt(socket.IPPROTO_TCP, TCP_KEEPIDLE, 1)
+        # self.socket.setsockopt(socket.IPPROTO_TCP, TCP_KEEPINTVL, 2)
 
         if name is not None:
             self.set_name(name)
@@ -433,6 +457,7 @@ Public commands are:
                 try:
                     self.bind(self.server_address)
                     self.bind_ok = True
+                    self.port = p
                     break
                 except:
                     # already used. continue
@@ -445,12 +470,16 @@ Public commands are:
             try:
                 self.bind(self.server_address)
                 self.bind_ok = True
+                self.port = int(self.name)
             except:
                 log.log(2, "Cannot start server on port %s. Already used?" % self.name)
 
         if self.bind_ok:
             log.log(2,"spec server listening on %s" % str(self.server_address))
             self.listen(5)
+
+    def get_port(self):
+        return self.port
 
     def handle_accept(self):
         try:

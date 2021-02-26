@@ -72,7 +72,7 @@ def is_python3():
     return sys.version_info[0] == 3
 
 
-def async_loop(timeout=0.01, use_poll=False, count=None):
+def async_loop(timeout=0.01, use_poll=True, count=None):
     """Start asyncore and scheduler loop.
     Use this as replacement of the original asyncore.loop() function.
     """
