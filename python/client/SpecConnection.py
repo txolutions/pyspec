@@ -129,6 +129,7 @@ class _SpecConnection(asyncore.dispatcher):
         self.updater = None
         log.log(2, "creating _SpecConnection. thread_update=%s" % thread_update)
         self.thread_update = thread_update
+        self.ignore_ports = []
 
         self.socket_connected = False  # a socket is opened
 
@@ -229,8 +230,8 @@ class _SpecConnection(asyncore.dispatcher):
     def _update(self,timeout=0.01):
         try:
             self.check_connection()
-            if asyncore.socket_map:
-                async_loop(timeout=0.01, count=1)
+            #if asyncore.socket_map:
+            async_loop(timeout=0.01, count=1)
 
             #if self.thread_update:
             self.update_events()
@@ -250,7 +251,7 @@ class _SpecConnection(asyncore.dispatcher):
     # END update thread handling
 
     def wait_connected(self, timeout=2):
-        if not self.updater.is_running():
+        if self.updater and ( not self.updater.is_running() ):
             self.updater.run()
 
         start_waiting = time.time()
@@ -502,6 +503,7 @@ class _SpecConnection(asyncore.dispatcher):
         SpecEventsDispatcher.connect(self, signal, cb)
 
     def update_events(self):
+        self.check_connection()
         SpecEventsDispatcher.dispatch()
 
     update = update_events
