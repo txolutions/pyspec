@@ -8,7 +8,7 @@ import socket
 import asyncore
 
 from pyspec.utils import is_python3, is_macos
-from pyspec.css_logger import log
+from pyspec.css_logger import log, log_exception
 from pyspec.utils import async_loop
 
 from SpecConnection import MIN_PORT, MAX_PORT
@@ -41,7 +41,13 @@ class SpecHandler(asyncore.dispatcher):
 
     # asyncore interface
     def writable(self):
-        return len(self.sendq) > 0 or sum(map(len, self.output_strings)) > 0
+        try:
+            is_writable = len(self.sendq) > 0 or sum(map(len, self.output_strings)) > 0
+        except:
+            log_exception()
+
+        return is_writable
+
 
     def handle_read(self):
         try:
@@ -100,7 +106,7 @@ class SpecHandler(asyncore.dispatcher):
 
         except:
             import traceback
-            log.log(3,"SpecServer read error. %s" % traceback.format_exc())
+            log.log(2,"SpecServer read error. %s" % traceback.format_exc())
             return
 
     def dispatch_messages(self):
@@ -122,7 +128,7 @@ class SpecHandler(asyncore.dispatcher):
             self.output_strings = [ outbuf[sent:] ]
         except:
             import traceback
-            log.log(2,"error writing message: %s", traceback.format_exc())
+            log.log(2,"error writing message: %s" % traceback.format_exc())
 
     def handle_close(self):
         self.close()
@@ -177,6 +183,7 @@ class SpecHandler(asyncore.dispatcher):
         except:
             import traceback
             log.log(2,traceback.format_exc())
+            log.log(2, "dispatch message error")
             return False
     
     def get_and_reply(self, reply_id, channame):
@@ -354,6 +361,7 @@ class SpecServer(asyncore.dispatcher):
         self.channels = {}
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(0.2)
         self.set_reuse_addr()
 
         if is_macos():

@@ -59,7 +59,7 @@ class spec_updater(object):
 
     def _update(self):
         # asyncore.loop(timeout=1, count=1)
-        async_loop(timeout=1, count=1)
+        async_loop(timeout=0.01, count=1)
 
     def start(self):
         self.started = True
