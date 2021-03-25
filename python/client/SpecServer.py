@@ -338,6 +338,7 @@ class SpecServer(asyncore.dispatcher):
         self.updater = None
         self.auto_update = auto_update
         self.last_print = time.time()
+        self.bind_ok = False
 
         if host is None:
             self.host = "localhost"
