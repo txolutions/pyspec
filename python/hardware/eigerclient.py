@@ -105,15 +105,15 @@ class StartAcquisitionThread(CommandHandlerThread):
 
     cmd_name = 'startacq'
 
-    def __init__(self, host, port, arm_url, trigger_url, ntrigger_url):
+    def __init__(self, host, port, urls):
 
-        CommandHandlerThread.__init__(self, host, port, arm_url, 'startacq', data='', mimeType='text/html')
-        self.arm_url = arm_url
-        self.trigger_url = trigger_url
-        self.ntrigger_url = ntrigger_url
+        CommandHandlerThread.__init__(self, host, port, None, 'startacq', data='', mimeType='text/html')
+
+        self.urls = urls
 
         self.trigger_mode = None
         self.ntrigger = None
+        self.count_time = None
 
     def set_arm_needed(self, needed):
         self.arm_needed = needed
@@ -123,17 +123,50 @@ class StartAcquisitionThread(CommandHandlerThread):
 
     def set_ntrigger(self, value):
         self.ntrigger = value
-        #self.set_number_trigger(value)
 
-    def set_number_trigger(self, value):
+    def set_count_time(self, value):
+        self.count_time = value
+
+    def set_par(self, name, value):
         headers = {}
         headers['Content-type'] = 'application/json; charset=utf-8'
         data = json.dumps({'value':value})
+        log.log(2,"start thread - setting %s to %s" % (name,value))
+        url = self.urls['config'] + '{0}'.format(name)
 
-        log.log(3,"setting ntrigger to %s" % value)
-        self._connection.request('PUT',self.ntrigger_url, body = data, headers = headers)
-        response = self._connection.getresponse()
-        log.log(3,"setting ntrigger returns %s " % str(response))
+        numberOfTries = 0
+        response = None
+
+        try:
+            while response is None:
+                try:
+                    self._connection.request('PUT',url, body = data, headers = headers)
+                    response = self._connection.getresponse()
+                except Exception as e:
+                    numberOfTries += 1
+                    if numberOfTries == 50:
+                        log.log(2,"Terminate after {0} tries\n".format(numberOfTries))
+                        raise e
+                    log.log(2,"Failed to connect to host. Retrying\n")
+                    self._connection = http.HTTPConnection(self._host,self._port, timeout = self._connectionTimeout)
+                    continue
+
+            status = response.status
+            reason = response.reason
+            log.log(2,"response arrived status:%s / reason. %s" % (status,reason))
+            data = response.read()
+        except:
+            log.log(2,'setpar error')
+        finally:
+            pass
+
+        log.log(2,"setting %s returns %s " % (name,str(data)))
+
+    def send_cmd(self, cmd):
+        log.log(2, "start thread - starting command %s" % cmd)
+        url = self.urls['command'] + '{0}'.format(cmd)
+        aret = self.run_command(cmd, url)
+        return aret
 
     def run(self):
         try:
@@ -141,14 +174,18 @@ class StartAcquisitionThread(CommandHandlerThread):
                 if self.arm_needed: 
                     if self.ntrigger == 1:
                         log.log(2,"programming big trigger no")
-                        self.set_ntrigger(TRIGGER_NO_MAX)
+                        self.set_par("ntrigger",TRIGGER_NO_MAX)
                     elif self.ntrigger == TRIGGER_NO_MAX:
                         log.log(3,"ntrigger is big")
                     else:
                         log.log(2,"programming ntrigger to %s" % self.ntrigger)
-                        self.set_ntrigger(self.ntrigger)
+                        self.set_par(self.ntrigger)
 
-                    aret = self.run_command("arm", self.arm_url)
+                    if self.count_time is not None:
+                        self.set_par("count_time", self.count_time)
+                        self.set_par("frame_time", self.count_time+0.00002)
+
+                    aret = self.send_cmd("arm")
                     log.log(2, "arm command finished. returned: %s" % aret)
     
                     if aret is None:
@@ -157,7 +194,7 @@ class StartAcquisitionThread(CommandHandlerThread):
                 else:
                     aret = None
 
-                tret = self.run_command("trigger", self.trigger_url)
+                tret = self.send_cmd("trigger")
                 log.log(2, "trigger command finished. returned: %s" % aret)
 
                 if tret is not None:
@@ -171,9 +208,9 @@ class StartAcquisitionThread(CommandHandlerThread):
                         return
 
             else:  # external trigger
-                aret = self.run_command("arm", self.arm_url)
+                aret = self.send_cmd("arm")
                 log.log(2, "arm command finished. returned: %s" % aret)
-                self.set_ntrigger(self.ntrigger)
+                self.set_par("ntrigger", self.ntrigger)
     
                 if aret is None:
                     return self.error()
@@ -418,21 +455,23 @@ class DEigerClient(object):
         self.startDetectorCommand()
         return 
 
-    def startAcquisition(self, need_arm = True, trigger_mode='ints', ntrigger=1):
+    def startAcquisition(self, need_arm = True, trigger_mode='ints', ntrigger=1, count_time=None):
         if self.isExecutingCommand():
             log.log(1,"cannot start acquisition while a command is running")
             return False
 
-        arm_url = self._url('detector','command','arm')
-        trigger_url = self._url('detector','command','trigger')
-        ntrigger_url = self._url('detector','config','ntrigger')
+        urls = {
+                'config': self._url('detector','config'),
+                'command': self._url('detector','command'),
+               }
 
-        self.detector_command = StartAcquisitionThread(self._host, self._port, \
-                arm_url, trigger_url, ntrigger_url)
+        self.detector_command = StartAcquisitionThread(
+                                    self._host, self._port, urls)
 
         self.detector_command.set_arm_needed(need_arm)
         self.detector_command.set_trigger_mode(trigger_mode)
         self.detector_command.set_ntrigger(ntrigger)
+        self.detector_command.set_count_time(count_time)
 
         self.startDetectorCommand()
 
