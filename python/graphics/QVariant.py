@@ -1,8 +1,8 @@
 #******************************************************************************
 #
-#  @(#)QVariant.py	3.15  02/18/21 CSS
+#  %W%  %G% CSS
 #
-#  "pyspec" Release %R%
+#  "pyspec" Release CSS
 #
 #  Copyright (c) 2013,2014,2015,2016,2017,2018,2020,2021
 #  by Certified Scientific Software.
