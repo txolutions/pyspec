@@ -93,7 +93,7 @@ EXAMPLES = README example_qt_command.py	example_qt_motor.py \
 	example_qt_status.py example_qt_variable.py example_calc_server.py \
 	example_sync_session.py
 
-HDW_SRC = __init__.py eigerclient.py server.py
+HDW_SRC = __init__.py server.py
 
 GRAPHICS_SRC = __init__.py graphics_rc.py qwt_import.py matplotlib_import.py \
 	PySide_import.py PyQt4_import.py PyQt5_import.py PySide2_import.py \
