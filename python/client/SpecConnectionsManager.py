@@ -1,6 +1,5 @@
-#  @(#)SpecConnectionsManager.py	3.4  12/13/20 CSS
-#  "pyspec" Release 3
-#
+#  %W%  %G% CSS
+#  "pyspec" Release CSS
 #$Id: SpecConnectionsManager.py,v 1.13 2005/09/27 13:54:58 guijarro Exp $
 """Module for managing connections to Spec
 

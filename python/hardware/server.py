@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-#   @(#)server.py	6.5  12/13/20 CSS
+#   %W%  %G% CSS
 #
-#   "spec" Release 6
+#   "spec" Release %R%
 #
-#   Copyright (c) 2018,2019,2020
+#   Copyright (c) 2018,2019,2020,2021
 #   by Certified Scientific Software.
 #   All rights reserved.
 #   Copyrighted as an unpublished work.

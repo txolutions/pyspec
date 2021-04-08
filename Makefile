@@ -4,7 +4,7 @@
 #
 #  "pyspec" Release %R%
 #
-#  Copyright (c) 2020
+#  Copyright (c) 2020,2021
 #  by Certified Scientific Software.
 #  All rights reserved.
 #

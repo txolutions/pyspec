@@ -1,6 +1,6 @@
-#   @(#)eigerclient.py	6.3  10/01/20 CSS
+#   %W%  %G% CSS
 #
-#   "spec" Release 6
+#   "spec" Release %R%
 #
 """
 class DEigerClient provides an interface to the EIGER API
