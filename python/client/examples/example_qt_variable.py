@@ -7,7 +7,6 @@ from pyspec.client import variable_async
 from pyspec.css_logger import log
 
 from pyspec.client.SpecConnection import QSpecConnection
-from pyspec.client.SpecVariable import SpecVariableA
 from pyspec.graphics.QVariant import *
 
 class VariableWidget(QWidget):
@@ -28,14 +27,15 @@ class VariableWidget(QWidget):
 
         self.value_ledit.returnPressed.connect(self.do_setvar)
 
+        self.conn = QSpecConnection(self.specname)
+
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(10)
 
-        self.conn = QSpecConnection(self.specname)
-
         callbacks = {'update': self.value_change}
-        self.variable = SpecVariableA(self.conn, self.varname, callbacks=callbacks)
+
+        self.variable = variable_async(self.conn, "MYVAR", callbacks=callbacks)
 
     def do_setvar(self):
         target = self.value_ledit.text()
@@ -46,7 +46,6 @@ class VariableWidget(QWidget):
         self.value_ledit.setText(str(value))
 
     def update(self):
-        ##self.variable.refresh()
         self.conn.update()
 
 def main():

@@ -506,7 +506,8 @@ class _SpecConnection(asyncore.dispatcher):
         self.check_connection()
         SpecEventsDispatcher.dispatch()
 
-    update = update_events
+    #update = _update_events
+    update = _update
 
     def disconnect(self):
         """Disconnect from the remote Spec version."""
