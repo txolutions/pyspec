@@ -1,5 +1,5 @@
-#  @(#)SpecVariable.py	3.6  12/13/20 CSS
-#  "pyspec" Release 3
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
 #
 #$Id: SpecVariable.py,v 1.4 2005/03/17 12:43:46 guijarro Exp $
 
