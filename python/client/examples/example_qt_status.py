@@ -1,6 +1,6 @@
 #
-#  @(#)example_qt_status.py	6.2  12/13/20 CSS
-#  "pyspec" Release 6
+#  %W%  %G% CSS
+#  "pyspec" Release %R%
 #
 
 from pyspec.client.SpecConnection import QSpecConnection
