@@ -71,6 +71,14 @@ def is_python2():
 def is_python3():
     return sys.version_info[0] == 3
 
+def is_centos8():
+    import platform
+    linux_dist = platform.linux_distribution()
+    if linux_dist[0].lower().find('centos') != -1 and \
+        linux_dist[1][0] == '8':
+            return True
+    else:
+        return False
 
 def async_loop(timeout=0.01, use_poll=True, count=None):
     """Start asyncore and scheduler loop.

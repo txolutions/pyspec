@@ -162,7 +162,7 @@ def check_compatible():
 
     return(True)
 
-def check():
+def check(fix_wayland=False):
     compat = check_compatible() and 1 or 0
 
     # if imports ok try to figure out a buggy python3/PyQt5 installation 
@@ -183,9 +183,17 @@ def check():
         shell_command += " from pyspec.graphics.QVariant import QApplication; app=QApplication([])'"
         proc = Popen(shell_command, shell=True, stdout=PIPE, stderr=PIPE)
         out, err = proc.communicate()
+
+        if fix_wayland and proc.returncode != 0:
+            os.environ['QT_QPA_PLATFORM']='x11'
+            proc = Popen(shell_command, shell=True, stdout=PIPE, stderr=PIPE)
+            out, err = proc.communicate()
+
         if proc.returncode != 0:
             # if starting a qt application ends abnormally
             compat = -1
+
+
 
     return compat
 

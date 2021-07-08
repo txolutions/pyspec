@@ -9,7 +9,7 @@ import asyncore
 
 from pyspec.utils import is_python3, is_macos
 from pyspec.css_logger import log, log_exception
-from pyspec.utils import async_loop
+#from pyspec.utils import async_loop
 
 from SpecConnection import MIN_PORT, MAX_PORT
 import SpecMessage as SpecMessage
@@ -361,28 +361,29 @@ class SpecServer(asyncore.dispatcher):
 
         self.channels = {}
 
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.settimeout(0.2)
-        self.set_reuse_addr()
-
-        if is_macos():
-            # macos does not expose this in socket module
-            # values are from netinet/tcp.h
-            TCP_KEEPIDLE = 0x10
-            TCP_KEEPINTVL = 0x101
-        else:
-            TCP_KEEPIDLE = socket.TCP_KEEPIDLE
-            TCP_KEEPINTVL = socket.TCP_KEEPINTVL
-
-        # self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        # self.socket.setsockopt(socket.IPPROTO_TCP, TCP_KEEPIDLE, 1)
-        # self.socket.setsockopt(socket.IPPROTO_TCP, TCP_KEEPINTVL, 2)
-
         if name is not None:
             self.set_name(name)
         else:
             # delay socket creation
             log.log(2, "SpecServer created without a name. set a name to start it")
+
+    def recreate_socket(self):
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(0.2)
+        self.set_reuse_addr()
+
+        #if is_macos():
+        #    # macos does not expose this in socket module
+        #    # values are from netinet/tcp.h
+        #    TCP_KEEPIDLE = 0x10
+        #    TCP_KEEPINTVL = 0x101
+        #else:
+        #    TCP_KEEPIDLE = socket.TCP_KEEPIDLE
+        #    TCP_KEEPINTVL = socket.TCP_KEEPINTVL
+
+        # self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        # self.socket.setsockopt(socket.IPPROTO_TCP, TCP_KEEPIDLE, 1)
+        # self.socket.setsockopt(socket.IPPROTO_TCP, TCP_KEEPINTVL, 2)
 
     def set_commands(self, cmds):
         self.commands.update(cmds)
@@ -458,23 +459,32 @@ Public commands are:
         # a name change does not change the port
 
         if isinstance(self.name, str): 
+            log.log(2,"USING A NAME as a port: %s" % self.name)
             # choose a port number from PORT range
-            host = ""
+            
             for p in range(MIN_PORT, MAX_PORT):
-                self.server_address = (host,p)
+                self.recreate_socket()
+
+                self.server_address = (self.host,p)
+                log.log(2, "tyring with server address: %s" % str(self.server_address))
 
                 try:
                     self.bind(self.server_address)
                     self.bind_ok = True
                     self.port = p
+                    log.log(2, "found the port %d to be free. using server address %s" % (p,str(self.server_address)))
                     break
-                except:
+                except BaseException as e:
                     # already used. continue
+                    log.log(2, "failed to connect to %s" % str(self.server_address))
+                    log.log(2, str(e))
+                    self.close()
                     continue
             else:
                 log.log(2, "ALL server addresses are taken. Cannot start")
         else:
             # it is a port number. use that one
+            log.log(2,"USING A PORT NUMBER as a port: %s" % self.name)
             self.server_address = (self.host, self.name)
             try:
                 self.bind(self.server_address)
@@ -484,11 +494,18 @@ Public commands are:
                 log.log(2, "Cannot start server on port %s. Already used?" % self.name)
 
         if self.bind_ok:
+            time.sleep(0.05)
             log.log(2,"spec server listening on %s" % str(self.server_address))
             self.listen(5)
 
     def get_port(self):
         return self.port
+
+    def handle_close(self):
+        pass
+
+    def handle_disconnect(self):
+        pass
 
     def handle_accept(self):
         try:
@@ -532,8 +549,8 @@ Public commands are:
         self.updater.stop() 
 
     def serve_forever(self):
-        #asyncore.loop()
-        async_loop()
+        asyncore.loop()
+        #async_loop()
 
 if __name__ == "__main__":
     import sys
