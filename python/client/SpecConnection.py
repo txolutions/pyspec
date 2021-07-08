@@ -22,10 +22,30 @@ import string
 import traceback
 import sys
 import time
+import numpy as np
 
 from pyspec.css_logger import log
 from pyspec.utils import is_python3, is_remote_host
 from pyspec.utils import is_macos, async_loop
+
+import spec_shm
+
+jsonok = False
+try:
+    import json
+    jsonok = True
+except ImportError:
+    pass
+
+if not jsonok:
+    try:
+        import simplejson as json
+        jsonok = True
+    except ImportError:
+        log.log(2,
+            "Cannot find json module. Only basic functionality will be provided")
+        log.log(2,
+            "Hint: Install json or simplejson python module in your system")
 
 from SpecEventsDispatcher import UPDATEVALUE, FIREEVENT
 
@@ -61,13 +81,21 @@ UPDATER_TIME = 10 # in millisecs.  update time for spec_updater
 
 DEFAULT_REPLY_TIMEOUT = 1 # in seconds. 
 
+class SpecServerError(BaseException):
+    pass
+
+class SpecConnectionError(BaseException):
+    pass
+
 def _spec_connection(_class):
     """ decorator to provide connection parameter singletons """
     _instances = {}
 
-    def get_only_one(spec_app):
+    def get_only_one(spec_app=None):
         """ creating or just return the one and only class instance.
             The singleton depends on the parameters used in __init__ """
+        if spec_app is None:
+            raise SpecConnectionError("missing spec name")
 
         t = spec_app.split(":")
         if len(t) == 2:
@@ -118,6 +146,12 @@ class _SpecConnection(asyncore.dispatcher):
     replyArrived(reply id, SpecReply object) -- emitted when a reply comes from the remote Spec
     error(error code) -- emitted when an error event is received from the remote Spec
     """
+    datavar = "SCAN_D"
+    infovar = "SCAN_D_INFO"
+    metavar = "SCAN_D_META"
+    colsvar = "SCAN_COLS"
+    plotcnfvar = "SCAN_PLOTCONFIG"
+    
     def __init__(self, host, specname, thread_update):
         """Constructor
 
@@ -130,6 +164,10 @@ class _SpecConnection(asyncore.dispatcher):
         log.log(2, "creating _SpecConnection. thread_update=%s" % thread_update)
         self.thread_update = thread_update
         self.ignore_ports = []
+
+        self.shm_last_check = 0
+        self.shm_connected = False
+        self.shm_data = False
 
         self.socket_connected = False  # a socket is opened
 
@@ -230,10 +268,7 @@ class _SpecConnection(asyncore.dispatcher):
     def _update(self,timeout=0.01):
         try:
             self.check_connection()
-            #if asyncore.socket_map:
             async_loop(timeout=0.01, count=1)
-
-            #if self.thread_update:
             self.update_events()
 
         except Exception as e:
@@ -272,6 +307,8 @@ class _SpecConnection(asyncore.dispatcher):
         If we are in port scanning mode, try to connect using
         a port defined in the range from MIN_PORT to MAX_PORT
         """
+        self.check_shm_connection()
+
         if not self.socket_connected:
             if self.scanports:
                 if self.port is None or self.port > MAX_PORT:
@@ -303,6 +340,19 @@ class _SpecConnection(asyncore.dispatcher):
             if (time.time() - self.waiting_hello_started) > WAIT_HELLO_TIMEOUT:
                 log.log(2, "socket connected but no response to hello message.forget this socket")
                 self.handle_close()
+
+    def check_shm_connection(self):
+        if not self.shm_connected or (time.time() - self.shm_last_check) > 2:
+
+            self.shm_connected = self.specname in spec_shm.getspeclist() \
+                and True or False
+
+            if self.shm_connected:
+                self.shm_data = self.datavar in spec_shm.getarraylist(self.specname)
+            else:
+                self.shm_data = False
+
+            self.shm_last_check = time.time()
 
     def register(self, chan_name, receiver_slot, registrationFlag = SpecChannel.DOREG, dispatchMode = UPDATEVALUE):
         """Register a channel
@@ -393,6 +443,12 @@ class _SpecConnection(asyncore.dispatcher):
         chan = self.get_channel(chan_name)
         return chan.write(value)
 
+    def need_server(self):
+        if self.socket_connected:
+            return
+
+        raise SpecServerError("no server connection. only shm features available")
+
     def get_position(self, mnemonic):
         chan_name = "motor/%s/position" % mnemonic
         chan = self.get_channel(chan_name)
@@ -408,7 +464,13 @@ class _SpecConnection(asyncore.dispatcher):
         motor = SpecMotorA(self, mne)
         return motor
 
+    @property
+    def motor_list(self):
+        return self.get_motors()
+    
     def get_motors(self):
+        self.need_server()
+
         macro = """local md[]; 
             for (i=0; i<MOTORS; i++) { 
                  md[motor_mne(i)]=motor_name(i) }; 
@@ -426,6 +488,92 @@ class _SpecConnection(asyncore.dispatcher):
         for ky, val in positions.items():
             positions[ky] = float(val)
         return positions
+
+    def abort(self):
+        if self.is_connected():
+            self.send_msg_abort()
+
+    @property
+    def info(self):
+        info = {
+                'host': self.host,
+                'spec': self.specname,
+                'shm_connected': self.shm_connected,
+                'sever_connected': self.socket_connected,
+                }
+        return info
+
+    @property
+    def scan_status(self):
+        info = self.scan_info
+        if info:
+            return info['status']
+
+        return 'unknown' 
+
+    @property
+    def scan_meta(self):
+        return self.get_meta()
+
+    @property
+    def scan_columns(self):
+        meta = self.get_meta()
+        if meta:
+            return meta['columns']
+
+    @property
+    def scan_npts(self):
+        info = self.scan_info
+        if info:
+            return info['ldt']+1
+
+    def get_meta(self):
+        meta = None
+        if self.shm_data:
+            meta = spec_shm.getmetadata(self.specname, self.datavar)
+        elif self.socket_connected:
+            meta = self.read_channel(self.metavar)
+
+        if meta:
+            cols, meta, plotcnf = json.loads(meta)
+            colkys = list(map(int, cols.keys()))
+            colkys.sort()
+            cols = [cols[str(ky)] for ky in colkys]
+            meta['columns'] = cols
+            meta['plotconfig'] = plotcnf
+            return meta
+
+        return None
+
+    @property
+    def scan_info(self):
+        info = None
+        if self.shm_data is not False:
+            info = spec_shm.getinfo(self.specname, self.datavar)
+        elif self.socket_connected:
+            info = self.read_channel(self.infovar)
+
+        if info:
+            info = json.loads(info)
+            return {'ldt': info[0], 'status': info[1], '_g3': info[2] }
+
+        return None
+
+    @property
+    def scan_data(self):
+        data = None
+
+        if self.shm_data:
+            data = np.array(spec_shm.getdata(self.specname, self.datavar))
+        elif self.socket_connected:
+            data = self.read_channel(self.datavar)
+
+        if data is not None and data.any():
+            npts = self.scan_npts
+            if npts:
+                return data[:npts]
+
+        return 
 
     @property
     def spec_version(self):
@@ -478,7 +626,7 @@ class _SpecConnection(asyncore.dispatcher):
 
     def is_connected(self):
         """Return True if the remote Spec version is connected."""
-        return self.state == CONNECTED
+        return self.socket_connected == True
 
     isSpecConnected = is_connected
 
