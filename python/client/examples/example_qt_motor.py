@@ -4,6 +4,8 @@
 #
 
 from pyspec.client import motor, motor_async
+#from pyspec.client.SpecMotor import SpecMotorA
+from pyspec.client.SpecConnection import QSpecConnection
 from pyspec.graphics.QVariant import *
 from pyspec.css_logger import log
 
@@ -21,6 +23,7 @@ class MotorWidget(QWidget):
         layout.addWidget( self.label )
         layout.addWidget( self.position_ledit )
         self.position_ledit.returnPressed.connect(self.do_move)
+        self.spec_conn = QSpecConnection(self.specname)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
@@ -31,7 +34,7 @@ class MotorWidget(QWidget):
                "motorStateChanged": self.state_changed}
 
         # create asyncronous motor
-        self.motor = motor_async(self.specname, self.motormne, callbacks=cb)
+        self.motor = motor_async(self.spec_conn, self.motormne, callbacks=cb)
 
     def do_move(self):
         target = self.position_ledit.text()
@@ -48,7 +51,7 @@ class MotorWidget(QWidget):
             self.position_ledit.setStyleSheet("background-color: #c0ffc0")
 
     def update(self):
-        self.motor.update()
+        self.spec_conn.update()
 
 def main():
     log.start()

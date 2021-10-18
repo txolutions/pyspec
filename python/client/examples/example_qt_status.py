@@ -40,13 +40,15 @@ class StatusWidget(QWidget):
         self.conn.connect_event('connected', self.server_connected)
         self.conn.connect_event('disconnected', self.server_disconnected)
 
-    def poll(self,timeout=0.01):
+    def poll(self):
+        self.conn._update()
         self.conn.update_events()
 
     def abort_cmd(self):
         self.conn.abort()
 
     def server_connected(self):
+        print("server connected")
         self.is_connected = True
         self.conn.registerChannel('status/ready', self.status_ready)
         self._update_status()
@@ -88,8 +90,8 @@ class StatusWidget(QWidget):
 def main():
     app = QApplication([])
     win = QMainWindow()
-    var =  StatusWidget("fourc")
-    win.setCentralWidget(var)
+    wid =  StatusWidget("fourc")
+    win.setCentralWidget(wid)
     win.show()
 
     app.exec_()

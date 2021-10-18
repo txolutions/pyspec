@@ -18,7 +18,7 @@ class SpecVariable(object):
     Thin wrapper around SpecChannel objects, to make
     variables watching, setting and getting values easier.
     """
-    def __init__(self, conn, varname):
+    def __init__(self, conn, varname, callbacks={}):
         """Constructor
 
         Keyword arguments:
@@ -35,8 +35,27 @@ class SpecVariable(object):
         else:
             self.chan_name = 'var/' + str(varname)
 
+        self._callbacks = {
+          'connected': None,
+          'disconnected': None,
+          'update': None,
+        }
+
         self._conn = conn
-        self._conn.wait_connected()
+
+        self._conn.connect_event('connected', self.spec_connected)
+        self._conn.connect_event('disconnected', self.spec_disconnected)
+
+        print("callbacks are: %s" % str(callbacks))
+        for cb_name in iter(self._callbacks.keys()):
+            if callable(callbacks.get(cb_name)):
+               print("adding callback for signal %s" % cb_name)
+               self._callbacks[cb_name] = SpecEventsDispatcher.callableObjectRef(callbacks[cb_name])
+
+    def spec_connected(self):
+        pass
+    def spec_disconnected(self):
+        pass
 
     def is_connected(self):
         """Return whether the remote Spec version is connected or not."""
@@ -66,6 +85,7 @@ class SpecVariable(object):
         """
         if self.is_connected():
             return self._conn.write_channel(self.chan_name, value)
+
     setValue = set
 
     def waitUpdate(self, waitValue = None, timeout = None):
@@ -93,38 +113,25 @@ class SpecVariableA(SpecVariable):
         varname -- name of the variable to monitor (defaults to None)
         specapp -- 'host:port' string representing a Spec server to connect to (defaults to None)
         """
-        self.__callbacks = {
-          'connected': None,
-          'disconnected': None,
-          'update': None,
-        }
-
-        for cb_name in iter(self.__callbacks.keys()):
-            if callable(callbacks.get(cb_name)):
-               self.__callbacks[cb_name] = SpecEventsDispatcher.callableObjectRef(callbacks[cb_name])
-
-        super(SpecVariableA,self).__init__(conn, varname)
-
-        self._conn.connect_event('connected', self._connected)
-        self._conn.connect_event('disconnected', self._disconnected)
+        super(SpecVariableA,self).__init__(conn, varname, callbacks)
 
         self.dispatchMode = dispatchMode
 
         if self._conn.is_connected():
-            self._connected()
+            self.spec_connected()
 
     def refresh(self):
         self._conn.update()
 
-    def _connected(self):
+    def spec_connected(self):
         #
         # register channel
         #
         self._conn.registerChannel(self.chan_name, self._update, dispatchMode = self.dispatchMode)
 
         try:
-            if self.__callbacks.get("connected"):
-                cb = self.__callbacks["connected"]()
+            if self._callbacks.get("connected"):
+                cb = self._callbacks["connected"]()
                 if cb is not None:
                     cb()
         finally:
@@ -137,10 +144,10 @@ class SpecVariableA(SpecVariable):
         """
         pass
 
-    def _disconnected(self):
+    def spec_disconnected(self):
         try:
-            if self.__callbacks.get("disconnected"):
-                cb = self.__callbacks["disconnected"]()
+            if self._callbacks.get("disconnected"):
+                cb = self._callbacks["disconnected"]()
                 if cb is not None:
                     cb()
         finally:
@@ -154,9 +161,13 @@ class SpecVariableA(SpecVariable):
         pass
 
     def _update(self, value):
+        print("new value is %s" % value)
+        print("toto")
+        print("see if update in _callbacks: %s " % str(self._callbacks))
+
         try:
-            if self.__callbacks.get("update"):
-                cb = self.__callbacks["update"]()
+            if self._callbacks.get("update"):
+                cb = self._callbacks["update"]()
                 if cb is not None:
                     cb(value)
         finally:
