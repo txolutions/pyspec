@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#******************************************************************************
+# ******************************************************************************
 #
 #  @(#)spec.py	6.4  10/30/20 CSS
 #
@@ -33,7 +33,7 @@
 #     * or otherwise, arising from, out of or in connection with    *
 #     * the software or the use of other dealings in the software.  *
 #
-#******************************************************************************
+# ******************************************************************************
 
 """
 
@@ -43,15 +43,16 @@ filespec
 
 Description
 ****************
-   This module offers an interface to files with data in the spec 
-   file format. The format specificiation can be consulted online at the _`certif.com`
-   website.
+   This module offers an interface to files with data in the spec
+   file format. The format specificiation can be consulted online
+   at the _`certif.com` website.
 
-   A spec file normally consists of a series of header blocks and scan blocks. 
-   Data comes after scan blocks. Sometimes comment lines can be also be found in between blocks. 
-   These comment lines could contain for example the result of user calculations after a scan, 
-   or pure comments.  For practical purposes comment lines will be considered to belong to the 
-   preceding scan or header block.
+   A spec file normally consists of a series of header blocks and scan blocks.
+   Data comes after scan blocks. Sometimes comment lines can be also
+   be found in between blocks.
+   These comment lines could contain for example the result of user
+   calculations after a scan, or pure comments.  For practical purposes comment
+   lines will be considered to belong to the preceding scan or header block.
 
 .. _`certif.com`: http://www.certif.com/spec_help/scans.html
 
@@ -61,12 +62,13 @@ Description
 import re
 import numpy
 import os
-import sys
 import time
 import string
 
+
 class FileSpecFormatUnknown(BaseException):
     pass
+
 
 class FileSpec(list):
     """
@@ -77,14 +79,14 @@ class FileSpec(list):
 
         list.__init__(self)
 
-        self.filename = filename
+        self._filename = filename
         self.origfilename = None
-        self.headers = []
+        self._headers = []
         self.lastpos = 0
 
         self.inheader = False
 
-        self.filestat = os.stat(self.filename)
+        self.filestat = os.stat(self._filename)
         self.st_size = 0
 
         # dictionary to hold references (by scan number) to the scanlist
@@ -93,14 +95,19 @@ class FileSpec(list):
         self._indexscans()
 
         if len(self.scans) == 0:
-            raise FileSpecFormatUnknown("No scans found in file %s" % self.filename)
+            raise FileSpecFormatUnknown("No scans found in file %s"
+                                        % self._filename)
+
+    @property
+    def abspath(self):
+        return self.absolutePath()
 
     def absolutePath(self):
-        return os.path.abspath(self.filename)
+        return os.path.abspath(self._filename)
 
     def update(self):
 
-        currstat = os.stat(self.filename)
+        currstat = os.stat(self._filename)
 
         if currstat.st_size > self.st_size:
             self.st_size = currstat.st_size
@@ -111,8 +118,12 @@ class FileSpec(list):
 
         return modified
 
+    @property
+    def filename(self):
+        return self.getFileName()
+
     def getFileName(self):
-        return self.filename
+        return self._filename
 
     def getScanByNumber(self, scanno, scanorder=0):
         if scanno in self.scans:
@@ -122,30 +133,60 @@ class FileSpec(list):
         else:
             return None
 
+    get_scan_by_number = getScanByNumber
+
+    @property
+    def time_created(self):
+        return self.getTimeCreated()
+
     def getTimeCreated(self):
-        if self.headers:
-            return self.headers[0].getDate()
+        if self._headers:
+            return self._headers[0].getDate()
+
+    @property
+    def user(self):
+        return self.getUser()
 
     def getUser(self):
-        if self.headers:
-            return self.headers[0].getUser()
+        if self._headers:
+            return self._headers[0].getUser()
+
+    @property
+    def spec(self):
+        return self.getSpec()
 
     def getSpec(self):
-        if self.headers:
-            return self.headers[0].getSpec()
+        if self._headers:
+            return self._headers[0].getSpec()
+
+    @property
+    def time_modified(self):
+        return self.getTimeModified()
 
     def getTimeModified(self):
-        if not self.filename:
+        if not self._filename:
             return None
 
-        mtime = os.stat(self.filename).st_mtime
+        mtime = os.stat(self._filename).st_mtime
         return time.asctime(time.localtime(mtime))
+
+    @property
+    def length(self):
+        return self.getNumberScans()
 
     def getNumberScans(self):
         return len(self.scans)
 
+    @property
+    def headers(self):
+        return self.getNumberHeaders()
+
     def getNumberHeaders(self):
-        return len(self.headers)
+        return len(self._headers)
+
+    @property
+    def info(self):
+        return self.getInfo()
 
     def getInfo(self):
         """Returns user and application"""
@@ -157,7 +198,7 @@ class FileSpec(list):
 
     def _indexscans(self):
 
-        self.fd = open(self.filename, "r")
+        self.fd = open(self._filename, "r")
 
         if len(self) > 0:
             fb = self[-1]
@@ -166,20 +207,20 @@ class FileSpec(list):
             fb = None
 
         data = self.fd.read()
-        lines = data.split('\n')
 
         for lineno, sline in enumerate(data.split('\n#')):
 
-            if not sline.strip(): continue
+            if not sline.strip():
+                continue
 
-            if sline[0] in ['S','F','E']:
+            if sline[0] in ['S', 'F', 'E']:
 
                 btype = sline[0]
 
-                if btype in ['F','E']:
-                    if sline[1] != " ":  # block not followed by space is not a block. ignore line
-                       log.log(3,"ignoring wrong file block")
-                       continue
+                if btype in ['F', 'E']:
+                    # block not followed by space is not a block. ignore line
+                    if sline[1] != " ":
+                        continue
 
                 blockstart = self.lastpos
                 blockline = lineno
@@ -187,21 +228,21 @@ class FileSpec(list):
                 if fb is not None:
                     fb.end()
 
-                if btype == 'F' or (btype == 'E' and not self.inheader) :
+                if btype == 'F' or (btype == 'E' and not self.inheader):
                     if btype == 'F':
                         self.origfilename = sline[2:].strip()
                     fb = Header(blockstart, blockline)
                     self.inheader = True
-                    self.headers.append(fb)
+                    self._headers.append(fb)
                 elif btype == 'S':
                     fb = Scan(blockstart, blockline)
                     fb.addSLine(sline[2:])
                     self.inheader = False
                     self.append(fb)
                     fb._setScanIndex(len(self))
-                    if len(self.headers):
+                    if len(self._headers):
                         # Assign last added header to current scan
-                        fb._setFileHeader(self.headers[-1])
+                        fb._setFileHeader(self._headers[-1])
 
                 if self.origfilename:
                     fb.setFileName(self.origfilename)
@@ -210,7 +251,6 @@ class FileSpec(list):
                 fb.addLine(sline)
 
             self.lastpos = self.fd.tell()
-
 
         # register last block
         if fb is not None:
@@ -237,7 +277,7 @@ class FileSpec(list):
 
 class FileBlock:
 
-    respecuser = re.compile("(?P<spec>.*?)\s+User\s+=\s+(?P<user>.*?)$")
+    respecuser = re.compile(r'(?P<spec>.*?)\s+User\s+=\s+(?P<user>.*?)$')
 
     def __init__(self, start, firstline):
 
@@ -278,8 +318,8 @@ class FileBlock:
         self._data = []
         self._oneds = []
 
-        #self._number = 0
-        #self._command = ""
+        # self._number = 0
+        # self._command = ""
 
         self._count_time = 0
         self._filename = ""
@@ -315,66 +355,74 @@ class FileBlock:
         data_line = 0
         comp_line = 2  # The mca data is between 2 data counter lines.
 
-        t0 = time.time()
-
         for line in self.lines:
-          for sline in line.split('\n'):
+            for sline in line.split('\n'):
 
-            lineno += 1
+                lineno += 1
 
-            if not sline:
-                continue
+                if not sline:
+                    continue
 
-            first_char = sline[0]
+                first_char = sline[0]
 
-            if first_char in string.ascii_letters + '@':
+                if first_char in string.ascii_letters + '@':
 
-                widx = sline.find(" ")
+                    widx = sline.find(" ")
 
-                metakey = sline[0]
-                metaval = sline[1:widx].strip()
-                content = sline[widx:].strip()
+                    metakey = sline[0]
+                    metaval = sline[1:widx].strip()
+                    content = sline[widx:].strip()
 
-                if metakey in self.funcs:
-                    self.funcs[metakey](content.strip(), metaval)
+                    if metakey in self.funcs:
+                        self.funcs[metakey](content.strip(), metaval)
+                    else:
+                        self.wrongLine(lineno, sline,
+                                       "unknown header line (%s) " % metakey)
+
+                    if sline[0:2] == '@A':
+                        if data_line == 1:
+                            comp_line = 1  # The mca data is the first line.
+
+                        sline = sline[2:]
+                        self.reading_mca = True
+
+                        if self._find_oned:
+                            self._oneds.append(OneD())
+
+                        self.tmpmca = McaData()
+                        complete = self.tmpmca._addLine(sline)
+                        if complete:
+                            self._oneds[oned_idx].append(self.tmpmca)
+                            self.reading_mca = False
+                            oned_idx += 1
                 else:
-                    self.wrongLine(
-                        lineno, sline, "unknown header line (%s) " % metakey)
-            else:
-                data_line += 1
-                if sline[0:1] == '@A':
-                    if data_line == 1:
-                        comp_line = 1  # The mca data is the first line.
-                    sline = sline[1:]
-                    self.reading_mca = True
-                    if self._find_oned:
-                        self._oneds.append(OneD())
-                    self.tmpmca = McaData()
-
-                if self.reading_mca:
-                    complete = self.tmpmca._addLine(sline)
-                    if complete:
-                        self._oneds[oned_idx].append(self.tmpmca)
-                        self.reading_mca = False
-                        oned_idx += 1
-                else:
-                    oned_idx = 0
-                    try:
+                    data_line += 1
+                    if self.reading_mca:
+                        complete = self.tmpmca._addLine(sline)
+                        if complete:
+                            self._oneds[oned_idx].append(self.tmpmca)
+                            self.reading_mca = False
+                            oned_idx += 1
+                    else:
+                        oned_idx = 0
                         try:
-                            dataline = list(map(float, sline.strip().split()))
-                        except:
-                            self.wrongLine(lineno, sline, "wrong data line")
-                            continue
+                            try:
+                                dataline = list(map
+                                                (float, sline.strip().split()))
+                            except BaseException:
+                                self.wrongLine(lineno,
+                                               sline, "wrong data line")
+                                continue
 
-                        if len(dataline) != self._columns:
-                            self.wrongLine(
-                                lineno, sline, "wrong number of columns")
-                        else:
-                            self._data.append(dataline)
-                            if len(self._data) == comp_line:
-                                self._find_oned = False
-                    except ValueError:
-                        self.wrongLine(lineno, sline, "cannot parse line ")
+                            if len(dataline) != self._columns:
+                                self.wrongLine(
+                                    lineno, sline, "wrong number of columns")
+                            else:
+                                self._data.append(dataline)
+                                if len(self._data) == comp_line:
+                                    self._find_oned = False
+                        except ValueError:
+                            self.wrongLine(lineno, sline, "cannot parse line ")
 
         self.is_parsed = True
 
@@ -416,7 +464,7 @@ class FileBlock:
 
     def addLabelLine(self, content, keyval=None):
         if self._labels is None:
-            self._labels = re.split("\s\s+",content)
+            self._labels = re.split(r'\s\s+', content)
             if not self._columns:
                 # cope with no N line. get nb columns from _labels
                 self._columns = len(self._labels)
@@ -425,18 +473,18 @@ class FileBlock:
 
     def addMotorLabelLine(self, content, keyval=None):
         # Beware of double spacing
-        self._motor_labels.extend(re.split("\s\s+", content))
+        self._motor_labels.extend(re.split(r'\s\s+', content))
 
     def addMotorMneLine(self, content, keyval=None):
-        self._motor_mnes.extend(re.split("\s", content))
+        self._motor_mnes.extend(re.split(r'\s', content))
 
     def addCounterLabelLine(self, content, keyval=None):
         # Beware of double spacing
-        self._counter_labels.extend(re.split("\s\s+", content))
+        self._counter_labels.extend(re.split(r'\s\s+', content))
 
     def addCounterMneLine(self, content, keyval=None):
         # Beware of double spacing
-        self._counter_mnes.extend(re.split("\s", content))
+        self._counter_mnes.extend(re.split(r'\s', content))
 
     def addMotorPositionLine(self, content, keyval=None):
         self._motor_positions.extend(content.split(" "))
@@ -450,7 +498,7 @@ class FileBlock:
     def addTimeLine(self, content, keyval=None):
         parts = content.split()
         if len(parts) > 1:
-            units = re.sub("[\)\(]", "", parts[1])
+            units = re.sub(r'[\)\(]', "", parts[1])
             self._count_time = [parts[0], units]
         else:
             self._count_time = [content, ""]
@@ -464,6 +512,10 @@ class FileBlock:
     def addExtraLine(self, content, keyval=None):
         self._extra_lines.append([keyval, content])
 
+    @property
+    def date(self):
+        return self.getDate()
+
     def getDate(self):
         """
         Returns the date when the scan was started
@@ -471,6 +523,10 @@ class FileBlock:
         if not self.is_parsed:
             self.parse()
         return self._date
+
+    @property
+    def user_spec(self):
+        return self.getUserSpec()
 
     def getUserSpec(self):
 
@@ -482,20 +538,29 @@ class FileBlock:
                 if mat:
                     return [mat.group("user"), mat.group("spec")]
 
-        return [None,None]
+        return [None, None]
+
+    @property
+    def spec(self):
+        return self.getSpec()
 
     def getSpec(self):
         """
-        Returns the name of the spec application from which the file was created
+        Returns the name of the spec application
+        from which the file was created
         """
         if not self.is_parsed:
             self.parse()
 
         return self.getUserSpec()[1]
 
+    @property
+    def user(self):
+        return self.getUser()
+
     def getUser(self):
         """
-        Returns the name of the unix user that created the file 
+        Returns the name of the unix user that created the file
         """
         if not self.is_parsed:
             self.parse()
@@ -504,7 +569,7 @@ class FileBlock:
 
 
 class Header(FileBlock):
-    """ 
+    """
     Class representing a file header.
     """
 
@@ -564,19 +629,31 @@ class Scan(FileBlock):
         """
         return self._index
 
+    @property
+    def number(self):
+        return self.getNumber()
+
     def getNumber(self):
-        """ 
-        Returns scan number as it appeared in spec. 
-        Remember that it could be that more than one scan in the file will have the same number. 
-        The scan index is the position of the scan in the file. The scan number is the number given by spec
-        to the scan at the time it was executed.  
+        """
+        Returns scan number as it appeared in spec.
+        Remember that it could be that more than one scan
+        in the file will have the same number.
+        The scan index is the position of the scan in the file.
+        The scan number is the number given by spec
+        to the scan at the time it was executed.
         """
         return self._number
 
+    @property
+    def order(self):
+        return self.getOrder()
+
     def getOrder(self):
-        """ 
-        Returns scan order for the scan. The combination of scan number/scan order should be unique for a scan.
-        in a file.  The first scan with a certain number in the file will have order 1.  If another scan in the file
+        """
+        Returns scan order for the scan. The combination
+        of scan number/scan order should be unique for a scan.
+        in a file.  The first scan with a certain number in
+        the file will have order 1.  If another scan in the file
         uses the same number, it will be associated with order 2 and so on.
         """
         return self._order
@@ -587,11 +664,19 @@ class Scan(FileBlock):
     def getNumberInFile(self):
         return self._numberinfile
 
+    @property
+    def nb_points(self):
+        return self.getLines()
+
     def getLines(self):
         """
         Returns number of data lines
         """
         return len(self._data)
+
+    @property
+    def nb_columns(self):
+        return self.getColumns()
 
     def getColumns(self):
         """
@@ -601,20 +686,33 @@ class Scan(FileBlock):
             self.parse()
         return self._columns
 
+    @property
+    def labels(self):
+        return self.getLabels()
+
     def getLabels(self):
         """
-        Returns the labels for the data columns 
+        Returns the labels for the data columns
         """
         if not self.is_parsed:
             self.parse()
         return self._labels
 
+    @property
+    def command(self):
+        return self.getCommand()
+
     def getCommand(self):
         """
-        Returns a string containing the command that was run in spec to start the scan
+        Returns a string containing the command that
+        was run in spec to start the scan
         """
         return self._command
 
+    @property
+    def motor_names(self):
+        return self.getMotorNames()
+        
     def getMotorNames(self):
         """
         Returns a list with motor names
@@ -629,9 +727,14 @@ class Scan(FileBlock):
         else:
             return None
 
+    @property
+    def motors(self):
+        return self.getMotorMnemonics()
+        
     def getMotorMnemonics(self):
         """
-        Returns a list with motor mnemonics. Motor mnemonics are saved in files only since spec version 6.0.10
+        Returns a list with motor mnemonics. Motor mnemonics are saved
+        in files only since spec version 6.0.10
         """
         if not self.is_parsed:
             self.parse()
@@ -643,9 +746,14 @@ class Scan(FileBlock):
         else:
             return None
 
+    @property
+    def counter_names(self):
+        return self.getCounterNames()
+
     def getCounterNames(self):
         """
-        Returns a list with counter names. Counter names are saved in files only since spec version 6.0.10
+        Returns a list with counter names. Counter names are saved
+        in files only since spec version 6.0.10
         """
         if not self.is_parsed:
             self.parse()
@@ -657,9 +765,14 @@ class Scan(FileBlock):
         else:
             return None
 
+    @property
+    def counters(self):
+        return self.getCounterMnemonics()
+
     def getCounterMnemonics(self):
         """
-        Returns a list with counter mnemonics. Counter mnemonics are saved in files only since spec version 6.0.10
+        Returns a list with counter mnemonics. Counter mnemonics are saved
+        in files only since spec version 6.0.10
         """
         if not self.is_parsed:
             self.parse()
@@ -671,22 +784,39 @@ class Scan(FileBlock):
         else:
             return None
 
+    @property
+    def motor_positions(self):
+        return self.getMotorPositions()
+
     def getMotorPositions(self):
         """
-        Returns a dictionary with motor names and positions. These are the positions of the motors when the scan was started
+        Returns a dictionary with motor names and positions.
+        These are the positions of the motors when the scan was started
         """
         if not self.is_parsed:
             self.parse()
 
         return self.motor_positions_list
 
+    @property
+    def user(self):
+        return self.getUser()
+
     def getUser(self):
         if self._fileheader:
             return self._fileheader.getUser()
 
+    @property
+    def spec(self):
+        return self.getSpec()
+
     def getSpec(self):
         if self._fileheader:
             return self._fileheader.getSpec()
+
+    @property
+    def date(self):
+        return self.getDate()
 
     def getDate(self):
         """
@@ -696,6 +826,10 @@ class Scan(FileBlock):
             self.parse()
         return self._date
 
+    @property
+    def file_date(self):
+        return self.getFileDate()
+
     def getFileDate(self):
         """
         Returns the date when the file was created
@@ -704,6 +838,10 @@ class Scan(FileBlock):
             return self._fileheader._date
         else:
             return None
+
+    @property
+    def source(self):
+        return self.getSource()
 
     def getSource(self):
         """
@@ -715,13 +853,22 @@ class Scan(FileBlock):
 
         return ""
 
+    @property
+    def geometry(self):
+        return self.getGeometry()
+
     def getGeometry(self):
         """
-        Returns geometry values as saved in the file.  Check the spec documentation for the meaning of these values
+        Returns geometry values as saved in the file.
+        Check the spec documentation for the meaning of these values
         """
         if not self.is_parsed:
             self.parse()
         return [' '.join(line) for line in self._geo_pars]
+
+    @property
+    def hkl(self):
+        return self.getHKL()
 
     def getHKL(self):
         """
@@ -731,15 +878,24 @@ class Scan(FileBlock):
             self.parse()
         return self._qvalue
 
+    @property
+    def file_epoch(self):
+        return self.getFileEpoch()
+
     def getFileEpoch(self):
         """
-        Returns the epoch of the file creation. It is possible to find the absolute epoch for any scan time by adding
+        Returns the epoch of the file creation. It is possible to find
+        the absolute epoch for any scan time by adding
         the file epoch with the value in the Epoch column of the scan
         """
         if self._fileheader:
             return self._fileheader._epoch
         else:
             return None
+
+    @property
+    def count_time(self):
+        return self.getCountTime()
 
     def getCountTime(self):
         """
@@ -750,22 +906,36 @@ class Scan(FileBlock):
             self.parse()
         return self._count_time
 
+    @property
+    def comments(self):
+        return self.getComments()
+
     def getComments(self):
         """
-        Returns comments in the scan. Aborted termination can be found in this way
+        Returns comments in the scan.
+        Aborted termination can be found in this way
         """
         if not self.is_parsed:
             self.parse()
         return self._comment_lines
+
+    @property
+    def user_lines(self):
+        return self.getUserLines()
 
     def getUserLines(self):
         if not self.is_parsed:
             self.parse()
         return self._user_lines
 
+    @property
+    def extra_lines(self):
+        return self.getExtraLines()
+
     def getExtra(self):
         """
-        Returns extra lines starting with "@" character. These are normally lines related with MCA data
+        Returns extra lines starting with "@" character.
+        These are normally lines related with MCA data
         """
         if not self.is_parsed:
             self.parse()
@@ -776,8 +946,12 @@ class Scan(FileBlock):
             self.parse()
         return [' '.join(line) for line in self._extra_lines]
 
+    @property
+    def metadata(self):
+        return self.getMeta()
+
     def getMeta(self):
-        """ 
+        """
         Returns a dictionary with the most relevant metdata information
         """
         if not self.is_parsed:
@@ -822,29 +996,42 @@ class Scan(FileBlock):
 
         return meta
 
+    @property
+    def data(self):
+        return self.getData()
+
     def getData(self):
-        """ 
+        """
         Returns a numpy array with all data in the scan
         """
         if not self.is_parsed:
             self.parse()
 
         if self._data:
-            return numpy.array(self._data, dtype=numpy.float)
+            return numpy.array(self._data, dtype=float)
         else:
             return numpy.empty((0, self._columns))
 
+    @property
+    def nb_mcas(self):
+        return self.getNumberMcas()
+
     def getNumberMcas(self):
-        """ 
+        """
         Returns the number of mcas in the scan
         """
         if not self.is_parsed:
             self.parse()
         return sum(map(len, self._oneds))
 
+    @property
+    def mcas(self):
+        return self.getMcas()
+
     def getMcas(self):
-        """ 
-        Returns a list of 1D numpy arrays in the scan, each of them being a spectrum from a 1D detector
+        """
+        Returns a list of 1D numpy arrays in the scan,
+        each of them being a spectrum from a 1D detector
         """
         if not self.is_parsed:
             self.parse()
@@ -853,8 +1040,12 @@ class Scan(FileBlock):
             result += mcas
         return result
 
+    @property
+    def nb_oneds(self):
+        return self.getNumberOneD()
+
     def getNumberOneD(self):
-        """ 
+        """
         Returns the number of OneD channels in the scan.
         """
         if not self.is_parsed:
@@ -865,6 +1056,9 @@ class Scan(FileBlock):
         if not self.is_parsed:
             self.parse()
         return self._oneds[idx]
+
+    get_mca = getOneD
+    get_oned = getOneD
 
     def _setOrder(self, order):
         self._order = order
@@ -877,9 +1071,10 @@ class Scan(FileBlock):
         else:
             return "%s %s" % (self._number, self._command)
 
-    def save(self, outfile, format="spec", append=False, columns=None, mcas=False):
-        """ scan.save method produces a simple output meant to export scan data to 
-format readable by excel and other programs
+    def save(self, outfile, format="spec",
+             append=False, columns=None, mcas=False):
+        """ scan.save method produces a simple output meant to export scan
+data to format readable by excel and other programs
 """
 
         data = self.getData()
@@ -888,8 +1083,6 @@ format readable by excel and other programs
         meta['command'] = self.getCommand()
         meta['number'] = self.getNumber()
         meta['columns'] = data.shape[1]
-
-        log.log(3,"saving scan (format=%s) to file %s" % (format, outfile))
 
         if append:
             ofd = open(outfile, "a")
@@ -920,36 +1113,48 @@ format readable by excel and other programs
 
 
 class McaData:
-    """ 
+    """
     The class MCA data represents 1D data
     """
 
     def __init__(self):
-        self.data = []
-        self.calib = None
+        self._data = []
+        self._calib = None
+
+    @property
+    def calib(self):
+        return self.getCalib()   
 
     def getCalib(self):
         return self.calib
 
+    @calib.setter
+    def calib(self, calib):
+        return self.setCalib(calib)
+
     def setCalib(self, calib):
-        self.calib = calib
+        self._calib = calib
+
+    @property
+    def data(self):
+        return self.getData()
 
     def getData(self, calibrated=False):
-        channels = list(range(len(self.data)))
+        channels = list(range(len(self._data)))
 
-        if calibrated and self.calib:
-            a, b, c = self.calib
-            indexes = [ (a + b*x + c*x**2) for x in channels ]
+        if calibrated and self._calib:
+            a, b, c = self._calib
+            indexes = [(a + b*x + c*x**2) for x in channels]
         else:
             indexes = channels
 
-        if self.data:
-            return numpy.array([indexes, self.data], dtype=numpy.float).transpose()
+        if self._data:
+            return numpy.array([indexes, self._data], dtype=float).transpose()
         else:
             return numpy.empty((0, 1))
 
     def __len__(self):
-        return len(self.data)
+        return len(self._data)
 
     def _addLine(self, line):
         if line.strip()[-1] == "\\":
@@ -959,7 +1164,7 @@ class McaData:
             dataline = line
             complete = True
 
-        self.data.extend(list(map(float, dataline.split())))
+        self._data.extend(list(map(float, dataline.split())))
         return complete
 
 
@@ -969,18 +1174,33 @@ class OneD(list):
     It has a list of McaData objects.
     """
 
+    @property
+    def data(self):
+        return self.getData()
+
     def getData(self):
         data = []
         for mcadata in self:
             raw_data = mcadata.getData().transpose()[1].tolist()
             data.append(raw_data)
-        return numpy.array(data, dtype=numpy.float)
+        return numpy.array(data, dtype=float)
 
 
 if __name__ == '__main__':
-   import sys
-   import time
-   t0 = time.time()
-   fs = FileSpec(sys.argv[1])
-   print("Time to open file was %s " % (time.time() - t0))
-   print("  number of scans: %s" % len(fs))
+    import sys
+    t0 = time.time()
+
+    fs = FileSpec(sys.argv[1])
+
+    print("Time to open file was %s " % (time.time() - t0))
+    print("  number of scans: %s" % len(fs))
+
+    print("  file created by user %s" % fs.user)
+
+    for scan in fs:
+        print("Scan %d /  " % scan.number)
+        print("   count time is %s /  " % str(scan.count_time))
+        print("   number of points in scan: %d" % scan.nb_points)
+        print("   number of mcas in scan: %d" % scan.nb_mcas)
+        for mca in scan.mcas:
+            print("     - mca / shape: %s" % str(mca.data.shape))
