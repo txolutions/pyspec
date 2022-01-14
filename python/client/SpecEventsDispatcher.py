@@ -12,7 +12,7 @@ try:
 except ImportError:
    import Queue as queue
 
-import saferef 
+from pyspec.client import saferef
 from pyspec.css_logger import log, log_exception
 
 DEBUG=4  # debug level for this module
