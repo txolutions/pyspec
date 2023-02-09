@@ -7,6 +7,9 @@ from pyspec.utils import is_python3
 
 import numpy
 
+from numpy.version import version
+npvers = tuple(map(int, version.split('.')))
+
 (ARRAY_DOUBLE, ARRAY_FLOAT, ARRAY_LONG, ARRAY_ULONG, ARRAY_SHORT, \
  ARRAY_USHORT, ARRAY_CHAR, ARRAY_UCHAR, \
  ARRAY_STRING, ARRAY_NUMERIC) = (5,6,7,8,9,10,11,12,13,14)
@@ -34,10 +37,14 @@ NUM_TO_SPEC = {
     numpy.short : ARRAY_SHORT,
     numpy.int32 : ARRAY_LONG,
     numpy.int8 : ARRAY_CHAR,
-    numpy.float : ARRAY_FLOAT,
     numpy.float32 : ARRAY_FLOAT,
     numpy.float64 : ARRAY_DOUBLE
 }
+
+if npvers >= (1,24):
+    NUM_TO_SPEC[float] = ARRAY_FLOAT
+else:
+    NUM_TO_SPEC[numpy.float] = ARRAY_FLOAT
 
 class SpecArrayError(Exception):
     pass

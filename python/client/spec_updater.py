@@ -69,7 +69,7 @@ class spec_updater(object):
         self.started = False
         s0 = time.time()
         try:
-            while self.thread.isAlive():
+            while self.thread.is_alive():
                 time.sleep(0.1)
                 if time.time() -s0 > timeout:
                     print("cannot stop thread. killing it")
@@ -83,7 +83,7 @@ class spec_updater(object):
         #self.thread.kill()
 
     def is_running(self):
-        if self.thread is not None and self.thread.isAlive():
+        if self.thread is not None and self.thread.is_alive():
             return True
         return False
 

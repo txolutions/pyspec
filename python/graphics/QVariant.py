@@ -2,9 +2,9 @@
 #
 #  %W%  %G% CSS
 #
-#  "pyspec" Release CSS
+#  "pyspec" Release %R%
 #
-#  Copyright (c) 2013,2014,2015,2016,2017,2018,2020,2021
+#  Copyright (c) 2013,2014,2015,2016,2017,2018,2020,2021,2022
 #  by Certified Scientific Software.
 #  All rights reserved.
 #
@@ -162,7 +162,7 @@ def check_compatible():
 
     return(True)
 
-def check(fix_wayland=False):
+def check():
     compat = check_compatible() and 1 or 0
 
     # if imports ok try to figure out a buggy python3/PyQt5 installation 
@@ -184,7 +184,12 @@ def check(fix_wayland=False):
         proc = Popen(shell_command, shell=True, stdout=PIPE, stderr=PIPE)
         out, err = proc.communicate()
 
-        if fix_wayland and proc.returncode != 0:
+        if proc.returncode != 0:
+            os.environ['QT_QPA_PLATFORM']='wayland'
+            proc = Popen(shell_command, shell=True, stdout=PIPE, stderr=PIPE)
+            out, err = proc.communicate()
+
+        if proc.returncode != 0:
             os.environ['QT_QPA_PLATFORM']='x11'
             proc = Popen(shell_command, shell=True, stdout=PIPE, stderr=PIPE)
             out, err = proc.communicate()
