@@ -1,10 +1,11 @@
+#!/bin/sh
 #******************************************************************************
 #
 #  %W%  %G% CSS
 #
 #  "pyspec" Release %R%
 #
-#  Copyright (c) 2021
+#  Copyright (c) 2013,2014,2015,2016,2020
 #  by Certified Scientific Software.
 #  All rights reserved.
 #
@@ -34,44 +35,34 @@
 #
 #******************************************************************************
 
-import os
-from graphics_rc import g_rc
+me=`basename "$0"`
 
-try:
-    from PyQt6.QtCore import Qt
+PYTHON=
+SPECD=${SPECD:-/usr/local/lib/spec.d}
 
-    from PyQt6.QtWidgets import QDialog, QVBoxLayout, QGridLayout, \
-        QLabel, QComboBox, QHBoxLayout, QRadioButton, \
-        QPushButton, QApplication, QColorDialog, QMainWindow, \
-        QWidget, QButtonGroup, QSplashScreen, \
-        QListWidgetItem, QListWidget, QTreeWidgetItem, QTreeWidget, \
-        QSplitter,  QTabWidget, QMenuBar, QMessageBox, QSpacerItem,  \
-        QLineEdit, QHeaderView, QSpinBox, QTextEdit, QTextBrowser,  \
-        QMenu, QTabBar, QStackedWidget,  QFileDialog,  \
-        QScrollArea, QProgressBar, QStyleOptionSlider, QGroupBox,  \
-        QAbstractItemView, QSizePolicy, QFrame, QStyle, QScrollBar, QToolBar, \
-        QDialogButtonBox, QToolButton, QCheckBox, QLayout, QInputDialog
+check_prog() {
+   command -v $1 >/dev/null 2>&1 && echo 1 || echo 0
+}
 
-    from PyQt6.QtGui import QFont, QIcon, QFontMetrics, QPen, QColor, QPainter, \
-        QPixmap, QBrush, QPainterPath , QDesktopServices 
+check_python() {
+   if [ `check_prog $1` = 1 ]
+   then
+       PYTHON="$1"
+   fi
+}
 
-    from PyQt6.QtGui import QIntValidator,  QDoubleValidator, \
-            QValidator, QAction
+check_python python3
 
-    # QRegExpValidator not in PyQt6
+if [ ! "$PYTHON" ]
+then
+    check_python python2
+fi
 
-    from PyQt6.QtCore import QObject, QTimer,  QProcess, QEvent, QSize, \
-         QLine, QRect, QPoint, QRectF, QUrl, QUrlQuery, QCoreApplication, \
-         pyqtSignal
+if [ ! "$PYTHON" ]
+then
+    echo "Python not found. Needed to run $me"
+    exit
+fi
 
-    from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
-    from PyQt6.QtCore import QT_VERSION_STR
-
-    getQApp = QCoreApplication.instance
-
-    g_rc.qt_imported = True
-    g_rc.qt_variant = 'PyQt6'
-    g_rc.qt_version = list(map(int, QT_VERSION_STR.split(".")))
-except:
-    pass
+exec $PYTHON ${SPECD}/pyspec/tools/$me.py $*
 

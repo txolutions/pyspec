@@ -4,7 +4,7 @@
 #
 #   "spec" Release %R%
 #
-#   Copyright (c) 2018,2019,2020,2021
+#   Copyright (c) 2018,2019,2020,2021,2022
 #   by Certified Scientific Software.
 #   All rights reserved.
 #   Copyrighted as an unpublished work.
@@ -238,7 +238,7 @@ class CommandHandler(asyncore.dispatcher):
             self.writebuf = self.writebuf[sent:]
             log.log(4, "%s values sent. %s remain.", sent,len(self.writebuf))
 
-        if self.sending_data:  # data is always sent raw / as bytes
+        if self.sending_data: # data is always sent raw - as bytes
             log.log(4, "sending data")
             sent = self.send( self.databuf )
             self.databuf = self.databuf[sent:]

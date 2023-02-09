@@ -4,7 +4,7 @@
 #
 #  "pyspec" Release %R%
 #
-#  Copyright (c) 2020,2021
+#  Copyright (c) 2020,2021,2022
 #  by Certified Scientific Software.
 #  All rights reserved.
 #
@@ -65,8 +65,6 @@ endif
 SHELL   = /bin/sh
 INSDIR  = /usr/local/bin
 TAR     = tar
-PACK    = gzip -c
-UNPACK  = gunzip -c
 
 # removed to be used with --specsrc=
 #SPEC_SRC = ../..
@@ -112,6 +110,15 @@ DIRS = docs tools python python/datashm \
 	python/client python/client/examples python/hardware \
 	python/graphics python/tools python/file python/doc
 
+DEPENDS = VERSION.py \
+	 $(addprefix python/, ${PY_SRC}) \
+	 $(addprefix python/client/, ${CLIENT_SRC}) \
+	 $(addprefix python/client/examples/, ${EXAMPLES}) \
+	 $(addprefix python/hardware/, ${HDW_SRC}) \
+	 $(addprefix python/graphics/, ${GRAPHICS_SRC}) \
+	 $(addprefix python/tools/, ${TOOLS_PY}) \
+	 $(addprefix python/file/, ${FILE_SRC}) \
+	 $(addprefix python/doc/, ${PYDOC_SRC})
 
 # Keep gmake from trying to check out a file from  source code control
 %: %,v
@@ -124,13 +131,17 @@ it: prep_dist
 
 install:
 	@echo "Installing pyspec modules ..."
+	@if [ -d ${SPECD}/pyspec ] ; then \
+	    echo " Clearing out old pyspec files ..." ; \
+	    rm -rf ${SPECD}/pyspec ; \
+	fi
+	@mkdir ${SPECD}/pyspec
+	@echo " Copying pyspec files ..." ; \
+	    cat pyspec_built.tar.gz | (cd ${SPECD}/pyspec >/dev/null && ${TAR} xfz - )
 	@for i in ${TOOLS}; do rm -f ${INSDIR}/$$i; \
 		sed '/^SPECD/s;-.*};-${SPECD}};' tools/$$i >${INSDIR}/$$i; \
 		( chmod 555 ${INSDIR}/$$i; ${CHOWN} ${OWNER} ${INSDIR}/$$i; ) \
-	    done; \
-	mkdir -p ${SPECD}/pyspec
-	@echo " Copying pyspec files ..." ; \
-	 ${UNPACK} pyspec_built.tar.gz | (cd ${SPECD}/pyspec && ${TAR} xf - )
+	    done;
 	@if [ "${CHOWN}" = "chown" ] ; then \
 	 echo " Changing ownership of pyspec files to ${OWNER} ... " ; \
 	 cd ${SPECD}/pyspec ; ${CHOWN} -R ${OWNER} . ; fi
@@ -147,6 +158,7 @@ ifneq (,${PY3})
 	@echo "Compiling datashm module for ${PY3}"
 	@cd python/datashm >/dev/null; ${PY3} setup.py build
 endif
+	@touch prep_datashm
 
 version:
 	@echo "Generating VERSION.py python file"
@@ -154,7 +166,9 @@ version:
 
 dist: prep_dist tarball
 
-prep_dist: prep_datashm 
+prep_dist: prep_datashm pyspec_built.tar.gz
+
+pyspec_built.tar.gz: ${DEPENDS}
 	-@rm -rf pyspec.tmp
 	@mkdir pyspec.tmp
 	@mkdir pyspec.tmp/client 
@@ -190,7 +204,7 @@ endif
 		chmod u+w file ; \
 		chmod u+w doc ; \
 		chmod -f u+w __pycache__ */__pycache__  || :
-	@cd pyspec.tmp >/dev/null; ${TAR} cf - . | ${PACK} > ../pyspec_built.tar.gz
+	@cd pyspec.tmp >/dev/null; ${TAR} cfz ../pyspec_built.tar.gz .
 
 owner_chk:
 	@( file=/tmp/tmp.$$$$ ; cp /dev/null $$file ; \
@@ -199,12 +213,11 @@ owner_chk:
 		rm -f $$file ; exit 1 ; fi )
 
 untar:
-	@sh -c "if test -s pyspec_src.tar.gz ; then \
+	@sh -c "if test -s pyspec.tar.gz ; then \
 	    echo \"Uncompressing and detarring pyspec archive ... \" ; \
-	    ( ${UNPACK} pyspec_src.tar.gz || echo XX ) | ${TAR} xf - || exit 1 ; \
-	    ${CHOWN} -f -R ${OWNER} . ; \
-	    rm -f pyspec_src.tar.gz ; \
-	fi ; exit 0"
+	    tar xfz pyspec.tar.gz || exit 1 ; \
+	    rm -f pyspec.tar.gz ; \
+	fi ; ${CHOWN} -f -R ${OWNER} . ; exit 0"
 
 list:
 	-@rm -f ,list; ( \
@@ -238,7 +251,7 @@ distlist:
 	) > ,distlist
 
 tarball:
-	@rm -f pyspec_src.tar.gz; ${TAR} cf - ${DIST_SRC} `\
+	@rm -f pyspec.tar.gz; ${TAR} cfz pyspec.tar.gz `\
 	  for i in ${SRC}; do echo $$i; done; \
 	  for i in ${TOOLS}; do echo tools/$$i; done; \
 	  for i in ${DATASHM_SRC}; do echo python/datashm/$$i; done; \
@@ -249,12 +262,11 @@ tarball:
 	  for i in ${GRAPHICS_SRC}; do echo python/graphics/$$i; done; \
 	  for i in ${TOOLS_PY}; do echo python/tools/$$i; done; \
 	  for i in ${FILE_SRC}; do echo python/file/$$i; done; \
-	  for i in ${PYDOC_SRC}; do echo python/doc/$$i; done; `\
-	  | ${PACK} > pyspec_src.tar.gz
+	  for i in ${PYDOC_SRC}; do echo python/doc/$$i; done; `
 
 clean:
 	@rm -rf pyspec.tmp
-	@rm -f pyspec_src.tar.gz pyspec_built.tar.gz
+	@rm -f pyspec.tar.gz pyspec_built.tar.gz
 	@rm -f *.o *.bak core
 	@for i in ${DIRS}; do rm -f $$i/*.o $$i/*.bak ; done
 	@rm -fr python/datashm/build
