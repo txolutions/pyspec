@@ -4,7 +4,7 @@
 #
 #  "pyspec" Release %R%
 #
-#  Copyright (c) 2013,2014,2015,2016,2020,2021
+#  Copyright (c) 2013,2014,2015,2016,2020
 #  by Certified Scientific Software.
 #  All rights reserved.
 #
@@ -34,7 +34,7 @@
 #
 #******************************************************************************
 
-version = "1.4.2"
+version = "1.5.0"
 
 def getVersion():
     global version
