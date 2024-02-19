@@ -374,7 +374,11 @@ class FileBlock:
                     content = sline[widx:].strip()
 
                     if metakey in self.funcs:
-                        self.funcs[metakey](content.strip(), metaval)
+                        try:
+                            self.funcs[metakey](content.strip(), metaval)
+                        except:
+                            self.wrongLine(lineno, sline,
+                                           "unknown line (%s) " % metakey)
                     else:
                         self.wrongLine(lineno, sline,
                                        "unknown header line (%s) " % metakey)
