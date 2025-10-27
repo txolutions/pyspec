@@ -5,7 +5,12 @@
 import re
 import time
 import socket
-import asyncore
+
+try:
+    import asyncore
+except ImportError:  # python 3.12 and beyond
+    import pyspec.asyncore_vintage as asyncore
+
 
 from pyspec.utils import is_python3, is_macos
 from pyspec.css_logger import log, log_exception

@@ -144,7 +144,6 @@ def check_compatible():
 
     elif g_rc.mpl_imported:
         if g_rc.qt_imported == False:
-            print("qt is not imported")
             return(False)
         elif g_rc.qt_variant in ["PySide", "PySide2"]:
             if g_rc.mpl_version_no < [1,1,0]:

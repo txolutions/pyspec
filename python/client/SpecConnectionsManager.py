@@ -22,7 +22,6 @@ import atexit
 import threading
 import time
 import weakref
-import asyncore
 import sys
 import gc
 

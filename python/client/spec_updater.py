@@ -2,7 +2,6 @@
 #  "pyspec" Release %R%
 #
 
-import asyncore
 import threading
 import weakref
 import time

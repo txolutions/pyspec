@@ -37,7 +37,14 @@
 #
 """Refactored 'safe reference from dispatcher.py"""
 
-import collections
+from sys import version_info as vinfo
+
+vs = [vinfo.major, vinfo.minor]
+if vs < [3,10]:
+    from collections import Callable
+else:
+    from collections.abc import Callable
+
 import traceback
 import weakref
 # from functools import total_ordering
@@ -167,7 +174,7 @@ class BoundMethodWeakref(object):
                 pass
             for function in methods:
                 try:
-                    if isinstance(function, collections.Callable):
+                    if isinstance(function, Callable):
                         function(self_)
                 except Exception:
                     try:
