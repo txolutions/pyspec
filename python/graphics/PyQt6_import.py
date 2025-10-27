@@ -47,9 +47,9 @@ try:
         QListWidgetItem, QListWidget, QTreeWidgetItem, QTreeWidget, \
         QSplitter,  QTabWidget, QMenuBar, QMessageBox, QSpacerItem,  \
         QLineEdit, QHeaderView, QSpinBox, QTextEdit, QTextBrowser,  \
-        QMenu, QTabBar, QStackedWidget,  QFileDialog,  \
+        QMenu, QTabBar, QSizePolicy, QStackedWidget,  QFileDialog,  \
         QScrollArea, QProgressBar, QStyleOptionSlider, QGroupBox,  \
-        QAbstractItemView, QSizePolicy, QFrame, QStyle, QScrollBar, QToolBar, \
+        QAbstractItemView, QFrame, QStyle, QScrollBar, QToolBar, \
         QDialogButtonBox, QToolButton, QCheckBox, QLayout, QInputDialog
 
     from PyQt6.QtGui import QFont, QIcon, QFontMetrics, QPen, QColor, QPainter, \
@@ -68,6 +68,23 @@ try:
     from PyQt6.QtCore import QT_VERSION_STR
 
     getQApp = QCoreApplication.instance
+
+    QSizePolicy_ = QSizePolicy
+    QSizePolicy = QSizePolicy.Policy
+    Qt.TextSelectableByKeyboard = Qt.TextInteractionFlag.TextSelectableByKeyboard
+    Qt.TextSelectableByMouse = Qt.TextInteractionFlag.TextSelectableByMouse
+    Qt.Horizontal = Qt.Orientation.Horizontal
+    Qt.Vertical = Qt.Orientation.Vertical
+    Qt.AlignHCenter = Qt.AlignmentFlag.AlignHCenter
+    Qt.AlignVCenter = Qt.AlignmentFlag.AlignVCenter
+    Qt.AlignLeft = Qt.AlignmentFlag.AlignLeft
+    Qt.AlignRight = Qt.AlignmentFlag.AlignRight
+    Qt.AlignBottom = Qt.AlignmentFlag.AlignBottom
+    Qt.AlignTop = Qt.AlignmentFlag.AlignTop
+    Qt.AlignLeading = Qt.AlignmentFlag.AlignLeading
+    Qt.WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
+    Qt.StrongFocus = Qt.FocusPolicy.StrongFocus
+
 
     g_rc.qt_imported = True
     g_rc.qt_variant = 'PyQt6'

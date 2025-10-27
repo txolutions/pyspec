@@ -67,6 +67,23 @@ try:
 
     from PySide6 import __version_info__
 
+    QSizePolicy_ = QSizePolicy
+    QSizePolicy = QSizePolicy.Policy
+    Qt.TextSelectableByKeyboard = Qt.TextInteractionFlag.TextSelectableByKeyboard
+    Qt.TextSelectableByMouse = Qt.TextInteractionFlag.TextSelectableByMouse
+    Qt.Horizontal = Qt.Orientation.Horizontal
+    Qt.Vertical = Qt.Orientation.Vertical
+    Qt.AlignHCenter = Qt.AlignmentFlag.AlignHCenter
+    Qt.AlignVCenter = Qt.AlignmentFlag.AlignVCenter
+    Qt.AlignLeft = Qt.AlignmentFlag.AlignLeft
+    Qt.AlignRight = Qt.AlignmentFlag.AlignRight
+    Qt.AlignBottom = Qt.AlignmentFlag.AlignBottom
+    Qt.AlignTop = Qt.AlignmentFlag.AlignTop
+    Qt.AlignLeading = Qt.AlignmentFlag.AlignLeading
+    Qt.WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
+    Qt.StrongFocus = Qt.FocusPolicy.StrongFocus
+
+
     pyqtSignal = Signal
     g_rc.qt_imported = True
     g_rc.qt_variant = 'PySide6'
