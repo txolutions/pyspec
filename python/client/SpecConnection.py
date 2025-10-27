@@ -16,7 +16,11 @@ SpecConnectionDispatcher
 __author__ = 'Matias Guijarro'
 __version__ = '1.0'
 
-import asyncore
+try:
+    import asyncore
+except ImportError:  # python 3.12 and beyond
+    import pyspec.asyncore_vintage as asyncore
+
 import socket
 import string
 import traceback
