@@ -39,7 +39,10 @@ from graphics_rc import g_rc
 try:
     import matplotlib
 
-    if g_rc.qt_variant == "PySide":
+    if g_rc.qt_variant in ["PyQt6", "PySide6"]:
+        matplotlib.use("Qt5Agg")
+        import matplotlib.backends.backend_qt5agg as mpl_backend
+    elif g_rc.qt_variant == "PySide":
         matplotlib.use("Qt4Agg")
         from matplotlib import rcParams
         rcParams["backend.qt4"] = "PySide"
@@ -66,7 +69,7 @@ try:
        try:
            import re
            rel = version_parts[2]
-           m = re.search("(?P<rel>\d+)", rel )
+           m = re.search(r"(?P<rel>\d+)", rel )
            if m:
                mrel = int(m.group('rel'))
                g_rc.mpl_version_no[2] = mrel
@@ -75,6 +78,6 @@ try:
 
     g_rc.graph_variant = "matplotlib"
 
-except:
+except Exception as e:
     pass
 

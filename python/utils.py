@@ -38,7 +38,6 @@ import sys
 import platform
 import os
 import socket
-import asyncore
 
 def is_macos():
     return sys.platform == "darwin" 
@@ -84,6 +83,11 @@ def async_loop(timeout=0.01, use_poll=True, count=None):
     """Start asyncore and scheduler loop.
     Use this as replacement of the original asyncore.loop() function.
     """
+    try:
+        import asyncore
+    except ImportError:
+        import asyncore_vintage as asyncore
+
     if use_poll and hasattr(asyncore.select, 'poll'):
         poll_sock = asyncore.poll2
     else:
